@@ -25,8 +25,13 @@ body {
     font-size: 26px;
     user-select: none;
 
-    transition: color 0.3s;
-    transition: font-size 0.5s;
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 12px;
+    padding: 12px 20px;
+    backdrop-filter: blur(1px);
+
+    transition: color 0.3s, font-size 0.5s;
 }
 
 .message:hover {

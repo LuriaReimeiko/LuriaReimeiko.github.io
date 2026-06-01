@@ -48,7 +48,7 @@ const ctx = canvas.getContext('2d');
 let mx = -9999, my = -9999;
 
 const SPACING = 36;
-const DOT_R = 1.8;
+const DOT_R = 2;
 const FISH_RADIUS = 220;
 const FISH_STRENGTH = 0.2;
 
