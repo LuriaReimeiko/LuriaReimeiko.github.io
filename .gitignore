@@ -11,8 +11,32 @@ _site/
 /vendor
 
 # Specific ignore for GitHub Pages
-# GitHub Pages will always use its own deployed version of pages-gem 
+# GitHub Pages will always use its own deployed version of pages-gem
 # This means GitHub Pages will NOT use your Gemfile.lock and therefore it is
 # counterproductive to check this file into the repository.
 # Details at https://github.com/github/pages-gem/issues/768
 Gemfile.lock
+
+# generated types
+luria-web/.astro/
+
+# dependencies
+luria-web/node_modules/
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+
+# environment variables
+.env
+.env.production
+
+# macOS-specific files
+.DS_Store
+
+# setting folder
+**/.idea/
+**/.vscode/
