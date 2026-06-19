@@ -1,0 +1,98 @@
+---
+// Dot-grid with fisheye mouse repulsion.
+// Recolored to use --color-primary at low opacity to match the palette.
+// Props allow per-page tuning if needed.
+interface Props {
+  spacing?: number;
+  dotRadius?: number;
+  fishRadius?: number;
+  fishStrength?: number;
+}
+
+const {
+  spacing = 36,
+  dotRadius = 1.8,
+  fishRadius = 220,
+  fishStrength = 0.22,
+} = Astro.props;
+---
+
+<canvas
+  id="starfield"
+  style="position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;"
+  aria-hidden="true"
+></canvas>
+
+<script define:vars={{ spacing, dotRadius, fishRadius, fishStrength }}>
+  const canvas = document.getElementById('starfield');
+  const ctx = canvas.getContext('2d');
+
+  const FISH_R2 = fishRadius * fishRadius;
+
+  let mx = -9999, my = -9999;
+  let gridPts = [];
+  let lastFrame = 0;
+  const FRAME_MS = 1000 / 30;
+
+  window.addEventListener('mousemove', (e) => { mx = e.clientX; my = e.clientY; });
+
+  function buildGrid(w, h) {
+    gridPts = [];
+    const cols = Math.ceil(w / spacing) + 2;
+    const rows = Math.ceil(h / spacing) + 2;
+    for (let r = 0; r < rows; r++)
+      for (let c = 0; c < cols; c++)
+        gridPts.push(c * spacing, r * spacing);
+  }
+
+  function resize() {
+    canvas.width  = window.innerWidth;
+    canvas.height = window.innerHeight;
+    buildGrid(canvas.width, canvas.height);
+  }
+
+  resize();
+  window.addEventListener('resize', resize);
+
+  // Parse primary color from CSS var for dot fill
+  // Falls back to a purple if CSS vars aren't readable here
+  function getDotColor(alpha) {
+    return `rgba(213, 184, 255, ${alpha})`;
+  }
+
+  function draw(ts) {
+    requestAnimationFrame(draw);
+    if (ts - lastFrame < FRAME_MS) return;
+    lastFrame = ts;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    for (let i = 0; i < gridPts.length; i += 2) {
+      const gx = gridPts[i];
+      const gy = gridPts[i + 1];
+      const dx = gx - mx;
+      const dy = gy - my;
+      const dist2 = dx * dx + dy * dy;
+
+      let px = gx, py = gy, scale = 1;
+
+      if (dist2 < FISH_R2 && dist2 > 0) {
+        const dist    = Math.sqrt(dist2);
+        const norm    = dist / fishRadius;
+        const falloff = (1 - norm) * (1 - norm);
+        const push    = falloff * fishStrength;
+        px    = gx + dx * push;
+        py    = gy + dy * push;
+        scale = 1 + falloff * 1.2;
+      }
+
+      const alpha = 0.1 + (scale - 1) * 0.22;
+      ctx.beginPath();
+      ctx.arc(px, py, dotRadius * Math.min(scale, 1.5), 0, Math.PI * 2);
+      ctx.fillStyle = getDotColor(Math.min(alpha, 0.38));
+      ctx.fill();
+    }
+  }
+
+  requestAnimationFrame(draw);
+</script>
