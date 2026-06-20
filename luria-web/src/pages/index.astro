@@ -30,7 +30,9 @@ const navItems = [
                 />
             </div>
 
-            <h1 class="name font-display">Luria Reimeiko</h1>
+            <h1 class="name name-top font-display">Luria</h1>
+            <div class="separator"></div>
+            <h1 class="name name-bottom font-display">Reimeiko</h1>
             <p class="tagline font-body">
                 — game developer · designer —
             </p>
@@ -96,7 +98,7 @@ const navItems = [
     }
 
     .avatar-wrap:hover {
-        box-shadow: 0 0 36px rgba(213, 184, 255, 0.32);
+        box-shadow: 0 0 30px var(--color-glow), 0 0 20px var(--color-glow), 0 0 15px var(--color-glow);
     }
 
     .avatar {
@@ -113,14 +115,37 @@ const navItems = [
         height: 100%;
     }
 
+
+    .separator {
+        display: block;
+        width: 50%;
+        height: 1px;
+        background-color: var(--color-text-dim);
+        margin: 0;
+        margin-left: -20%;
+        padding: 0;
+        gap: 0;
+    }
+
     .name {
         font-size: var(--text-4xl);
         font-weight: 400;
         letter-spacing: 0.04em;
         color: var(--color-text);
         line-height: 1;
-        /* Subtle primary glow on the name */
-        text-shadow: 0 0 32px rgba(213, 184, 255, 0.25);
+    }
+    .name:hover {
+        animation: title-glow-startup 1.5s forwards, title-glow-flicker 4s 1.5s infinite;
+    }
+
+    .name-top {
+        margin-left: -47.5%;
+        margin-bottom: -0.2em;
+    }
+
+    .name-bottom {
+        margin-left: 12.5%;
+        margin-top: -0.2em;
     }
 
     .tagline {
@@ -228,6 +253,38 @@ const navItems = [
         .corner-glyph--tr,
         .corner-glyph--br {
             display: none;
+        }
+    }
+
+    /* animation */
+    @keyframes title-glow-startup {
+        2%, 17%, 23%, 38%, 78%, 95% {
+            text-shadow: 0 0 2px var(--color-text), 0 0 5px var(--color-text), 0 0 15px var(--color-primary), 0 0 20px var(--color-primary);
+        }
+        0%, 14%, 32%, 90% {
+            text-shadow: none;
+        }
+
+        20%, 34%, 72% {
+            text-shadow:
+                0 0 2px var(--color-text),
+                0 0 4px var(--color-text);
+        }
+    }
+
+    @keyframes title-glow-flicker {
+        0%, 18%, 22%, 25%, 53%, 57%, 100% {
+            text-shadow: 0 0 2px var(--color-text), 0 0 5px var(--color-text), 0 0 15px var(--color-primary), 0 0 20px var(--color-primary);
+        }
+
+        20%, 24%, 55% {
+            text-shadow:
+                0 0 2px var(--color-text),
+                0 0 4px var(--color-text);
+        }
+
+        21%, 56% {
+            text-shadow: none;
         }
     }
 </style>
