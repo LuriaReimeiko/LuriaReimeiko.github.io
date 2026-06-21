@@ -1,0 +1,20 @@
+---
+import Base from '@layouts/base.astro';
+import StarfieldCanvas from '@components/StarfieldCanvas.astro';
+import BackButton from '@components/BackButton.astro';
+import ScrambleText from '@components/ScrambleText.astro';
+---
+
+<Base title="404">
+  <div class="page jutsify-center">
+    <StarfieldCanvas />
+    <BackButton />
+    <main class="stub">
+      <ScrambleText
+        text="Nothing here yet..."
+        tag="p"
+        class="stub__msg panel"
+      />
+    </main>
+  </div>
+</Base>

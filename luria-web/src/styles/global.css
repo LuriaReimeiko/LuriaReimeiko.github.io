@@ -1,28 +1,159 @@
-.space-mono-regular {
-  font-family: "Space Mono", monospace;
+/* ============================================================
+   FONTS
+   ============================================================ */
+
+@font-face {
+  font-family: 'Saint';
+  src: url('/fonts/Saint.woff2') format('woff2'),
+    url('/fonts/Saint.woff') format('woff');
   font-weight: 400;
   font-style: normal;
+  font-display: swap;
 }
 
-html, body {
+@font-face {
+  font-family: 'Chetkiy';
+  src: url('/fonts/Chetkiy.woff2') format('woff2'),
+    url('/fonts/Chetkiy.woff') format('woff');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Starveler';
+  src: url('/fonts/Starveler.woff2') format('woff2'),
+    url('/fonts/Starveler.woff') format('woff');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ============================================================
+   DESIGN TOKENS
+   ============================================================ */
+
+:root {
+    /* Core palette */
+    --color-bg: #18161e;
+    --color-panel: #232132;
+    --color-primary: #d5b8ff;
+    --color-primary-rgb: 213, 184, 255; /* JS accession */
+    --color-accent: #9c8abd;
+    --color-text: #f0f4fa;
+
+    /* Derived */
+    --color-text-dim: rgba(240, 244, 250, 0.45);
+    --color-glow: rgba(213, 184, 255, 0.18);
+    --color-border: rgba(213, 184, 255, 0.12);
+    --color-border-hover: rgba(213, 184, 255, 0.35);
+
+    /* Typography */
+    --font-display: 'Saint', 'Space Mono', monospace;
+    --font-heading: 'Starveler', 'Space Mono', monospace;
+    --font-body: 'Space Mono', monospace;
+
+    /* Type scale */
+    --text-xs:   0.6875rem;  /* 11px */
+    --text-sm:   0.8125rem;  /* 13px */
+    --text-base: 0.9375rem;  /* 15px */
+    --text-lg:   1.125rem;   /* 18px */
+    --text-xl:   1.375rem;   /* 22px */
+    --text-2xl:  1.75rem;    /* 28px */
+    --text-3xl:  2.5rem;     /* 40px */
+    --text-4xl:  3.5rem;     /* 56px */
+
+    /* Spacing */
+    --space-1: 0.25rem;
+    --space-2: 0.5rem;
+    --space-3: 0.75rem;
+    --space-4: 1rem;
+    --space-6: 1.5rem;
+    --space-8: 2rem;
+    --space-12: 3rem;
+    --space-16: 4rem;
+
+    /* Motion */
+    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+    --dur-fast: 120ms;
+    --dur-base: 240ms;
+    --dur-slow: 480ms;
+
+    /* Layout */
+    --nav-button-w: 11rem;
+    --nav-button-h: 2.75rem;
+
+    /* Z-index layers */
+    --z-bg: 0;
+    --z-content: 10;
+    --z-overlay: 20;
+    --z-top: 30;
+}
+
+/* ============================================================
+   RESET + BASE
+   ============================================================ */
+
+*, *::before, *::after {
+    box-sizing: border-box;
     margin: 0;
-    width: 100%;
+    padding: 0;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+html {
     height: 100%;
+    -webkit-text-size-adjust: 100%;
 }
 
 body {
-    background-color: #000;
+    height: 100%;
+    min-height: 100dvh;
+    background-color: var(--color-bg);
+    color: var(--color-text);
+    font-family: var(--font-body);
+    font-size: var(--text-base);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+}
 
+/* Page wrapper used by all pages */
+.page {
+    position: relative;
+    width: 100%;
+    height: 100dvh;
     display: flex;
-    justify-content: center;
+    flex-direction: column;
     align-items: center;
     overflow: hidden;
 }
 
-.message {
+/* ============================================================
+   UTILS
+   ============================================================ */
+
+/* TYPOGRAPHY */
+.font-display { font-family: var(--font-display); }
+.font-heading { font-family: var(--font-heading); }
+.font-body { font-family: var(--font-body); }
+.text-dim { color: var(--color-text-dim); }
+.text-primary { color: var(--color-primary); }
+.text-accent { color: var(--color-accent); }
+
+/* MISC */
+.jutsify-center { justify-content: center; }
+
+/* ============================================================
+   PANEL
+   ============================================================ */
+
+.panel {
     color: rgba(255, 255, 255, 0.3);
-    font-family: "Space Mono", monospace;
-    font-size: 26px;
+    font-family: var(--font-body);
+    font-size: var(--text-2xl);
     user-select: none;
 
     background: rgba(0, 0, 0, 0.35);
@@ -34,7 +165,61 @@ body {
     transition: color 0.3s, font-size 0.5s;
 }
 
-.message:hover {
+.panel:hover {
     color: white;
     font-size: 32px;
+}
+
+/* ============================================================
+   BACK BUTTON  (used by every sub-page)
+   ============================================================ */
+
+.back-btn {
+    position: fixed;
+    top: var(--space-6);
+    left: var(--space-6);
+    z-index: var(--z-top);
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-4);
+    background: var(--color-panel);
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    color: var(--color-text-dim);
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    text-decoration: none;
+    cursor: pointer;
+    transition:
+        color var(--dur-base) var(--ease-out),
+        border-color var(--dur-base) var(--ease-out),
+        box-shadow var(--dur-base) var(--ease-out);
+}
+
+.back-btn:hover {
+    color: var(--color-text);
+    border-color: var(--color-border-hover);
+    box-shadow: 0 0 12px var(--color-glow);
+}
+
+.back-btn svg {
+    width: 14px;
+    height: 14px;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+/* ============================================================
+   ANIMATION
+   ============================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+    }
 }

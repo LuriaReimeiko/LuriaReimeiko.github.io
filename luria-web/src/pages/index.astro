@@ -1,130 +1,290 @@
 ---
 import Base from "@layouts/base.astro";
-import "@styles/global.css";
+import StarfieldCanvas from "@components/StarfieldCanvas.astro";
+import ScrambleText from "@components/ScrambleText.astro";
+
+import { Image } from "astro:assets";
+
+// Nav items in the order you specified
+const navItems = [
+    { label: "portfolio", href: "/portfolio", ready: true },
+    { label: "projects", href: "/projects", ready: true },
+    { label: "hardware", href: "/hardware", ready: true },
+    { label: "software", href: "/software", ready: true },
+    { label: "music", href: "/music", ready: true },
+];
 ---
 
-<Base>
-    <span class="message" data-value="Nothing here yet...">Nothing here yet...</span>
+<Base title="Luria Kei" description="Personal site of Luria Kei">
+    <div class="page home">
+        <StarfieldCanvas />
 
-    <script>
-        const letters: String = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-        let interval: ReturnType<typeof setInterval> | undefined = undefined;
+        <header class="identity" transition:name="identity">
+            <div class="avatar-wrap">
+                <Image
+                    class="avatar"
+                    src="/avatar.png"
+                    alt="Luria Reimeiko"
+                    width="72"
+                    height="72"
+                />
+            </div>
 
-        const message = document.querySelector<HTMLSpanElement>(".message");
-        if (!message) throw new Error("Message element not found");
-        const originalText: String = message.innerText;
+            <h1 class="name name-top font-display">Luria</h1>
+            <div class="separator"></div>
+            <h1 class="name name-bottom font-display">Reimeiko</h1>
+            <p class="tagline font-body">
+                — game developer · designer —
+            </p>
+            <p class="tagline font-body text-dim">
+                giving life to pixels
+            </p>
+        </header>
 
-        message.addEventListener("mouseenter", () => {
-            clearInterval(interval);
-            interval = setInterval(() => {
-                message.innerText = originalText
-                    .split("")
-                    .map((char) => {
-                        if (char === " ") return " ";
-                        return letters[
-                            Math.floor(Math.random() * letters.length)
-                        ];
-                    })
-                    .join("");
-            }, 50);
-        });
-
-        message.addEventListener("mouseleave", () => {
-            let iteration = 0;
-            clearInterval(interval);
-            interval = setInterval(() => {
-                message.innerText = originalText
-                    .split("")
-                    .map((letter: String, index: number) => {
-                        if (index < iteration) return originalText[index];
-                        return letters[
-                            Math.floor(Math.random() * letters.length)
-                        ];
-                    })
-                    .join("");
-                if (iteration >= originalText.length) clearInterval(interval);
-                iteration += 1 / 3;
-            }, 30);
-        });
-
-        // Dot grid BG
-        const canvas = document.createElement("canvas");
-        canvas.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none";
-        document.body.prepend(canvas);
-        const ctx = canvas.getContext("2d");
-
-        const SPACING = 36;
-        const DOT_R = 2;
-        const FISH_R = 220;
-        const FISH_R2 = FISH_R * FISH_R;
-        const FISH_STRENGTH = 0.2;
-
-        let mx: number = -9999,
-            my: number = -9999;
-
-        window.addEventListener("mousemove", (e) => {
-            mx = e.clientX;
-            my = e.clientY;
-        });
-
-        let gridPts: number[] = [];
-
-        function buildGrid(w: number, h: number) {
-            gridPts = [];
-            const cols = Math.ceil(w / SPACING) + 2;
-            const rows = Math.ceil(h / SPACING) + 2;
-            for (let r: number = 0; r < rows; r++)
-                for (let c: number = 0; c < cols; c++)
-                    gridPts.push(c * SPACING, r * SPACING);
-        }
-
-        function resizeCanvas() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-            buildGrid(canvas.width, canvas.height);
-        }
-        resizeCanvas();
-        window.addEventListener("resize", resizeCanvas);
-
-        let lastFrame: number = 0;
-        const FRAME_MS = 1000 / 30;
-
-        function drawDots(ts: number) {
-            if (!ctx) throw new Error("2D Context not found");
-            requestAnimationFrame(drawDots);
-            if (ts - lastFrame < FRAME_MS) return;
-            lastFrame = ts;
-
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            for (let i: number = 0; i < gridPts.length; i += 2) {
-                const gx: number = gridPts[i];
-                const gy: number = gridPts[i + 1];
-                const dx: number = gx - mx;
-                const dy: number = gy - my;
-                const dist2: number = dx * dx + dy * dy;
-
-                let px: number = gx,
-                    py = gy,
-                    scale = 1;
-
-                if (dist2 < FISH_R2 && dist2 > 0) {
-                    const dist: number = Math.sqrt(dist2);
-                    const norm: number = dist / FISH_R;
-                    const falloff: number = (1 - norm) * (1 - norm);
-                    const push: number = falloff * FISH_STRENGTH;
-                    px = gx + dx * push;
-                    py = gy + dy * push;
-                    scale = 1 + falloff * 1.2;
-                }
-
-                const alpha: number = 0.18 + (scale - 1) * 0.28;
-                ctx.beginPath();
-                ctx.arc(px, py, DOT_R * Math.min(scale, 1.5), 0, Math.PI * 2);
-                ctx.fillStyle = `rgba(255,255,255,${Math.min(alpha, 0.5)})`;
-                ctx.fill();
+        <!-- Navigation -->
+        <nav class="nav" aria-label="Site navigation">
+            {
+                navItems.map((item) => (
+                    <a
+                        href={item.href}
+                        class="nav-btn"
+                        aria-label={`Go to ${item.label}`}
+                    >
+                        <ScrambleText text={item.label} tag="span" />
+                    </a>
+                ))
             }
-        }
-        requestAnimationFrame(drawDots);
-    </script>
+        </nav>
+
+        <!-- Deco -->
+        <div class="corner-glyph corner-glyph--tl" aria-hidden="true">✦</div>
+        <div class="corner-glyph corner-glyph--tr" aria-hidden="true">✦</div>
+        <div class="corner-glyph corner-glyph--bl" aria-hidden="true">✦</div>
+        <div class="corner-glyph corner-glyph--br" aria-hidden="true">✦</div>
+    </div>
 </Base>
+
+<style>
+    /* shell */
+    .home {
+        justify-content: flex-start;
+        align-items: center;
+    }
+
+    /* ── Identity block ── */
+    .identity {
+        position: relative;
+        z-index: var(--z-content);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: var(--space-3);
+        padding-top: clamp(var(--space-12), 10vh, var(--space-16));
+        padding-bottom: var(--space-8);
+    }
+
+    .avatar-wrap {
+        width: 72px;
+        height: 72px;
+        border-radius: 50%;
+        border: 1px solid var(--color-border);
+        overflow: hidden;
+        background: var(--color-panel);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 0 20px var(--color-glow);
+        transition: box-shadow var(--dur-slow) var(--ease-out);
+    }
+
+    .avatar-wrap:hover {
+        box-shadow: 0 0 30px var(--color-glow), 0 0 20px var(--color-glow), 0 0 15px var(--color-glow);
+    }
+
+    .avatar {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+
+    .avatar-fallback {
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+    }
+
+
+    .separator {
+        display: block;
+        width: 50%;
+        height: 1px;
+        background-color: var(--color-text-dim);
+        margin: 0;
+        margin-left: -20%;
+        padding: 0;
+        gap: 0;
+    }
+
+    .name {
+        font-size: var(--text-4xl);
+        font-weight: 400;
+        letter-spacing: 0.04em;
+        color: var(--color-text);
+        line-height: 1;
+    }
+    .name:hover {
+        animation: title-glow-startup 1.5s forwards, title-glow-flicker 4s 1.5s infinite;
+    }
+
+    .name-top {
+        margin-left: -47.5%;
+        margin-bottom: -0.2em;
+    }
+
+    .name-bottom {
+        margin-left: 12.5%;
+        margin-top: -0.2em;
+    }
+
+    .tagline {
+        font-size: var(--text-sm);
+        letter-spacing: 0.12em;
+        text-transform: lowercase;
+    }
+
+    /* ── Nav ── */
+    .nav {
+        position: relative;
+        z-index: var(--z-content);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: var(--space-3);
+    }
+
+    .nav-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: var(--nav-button-w);
+        height: var(--nav-button-h);
+        background: var(--color-panel);
+        border: 1px solid var(--color-border);
+        border-radius: 6px;
+        color: var(--color-text-dim);
+        font-family: var(--font-heading);
+        font-size: var(--text-base);
+        letter-spacing: 0.14em;
+        text-decoration: none;
+        text-transform: lowercase;
+        cursor: pointer;
+        transition:
+            color var(--dur-base) var(--ease-out),
+            border-color var(--dur-base) var(--ease-out),
+            box-shadow var(--dur-base) var(--ease-out),
+            background var(--dur-base) var(--ease-out);
+    }
+
+    .nav-btn:hover {
+        color: var(--color-text);
+        border-color: var(--color-border-hover);
+        box-shadow: 0 0 16px var(--color-glow);
+        background: rgba(35, 33, 50, 0.85);
+    }
+
+    .nav-btn:focus-visible {
+        outline: 2px solid var(--color-primary);
+        outline-offset: 3px;
+    }
+
+    /* ── Corner glyphs ── */
+    .corner-glyph {
+        position: fixed;
+        z-index: var(--z-content);
+        font-size: var(--text-xl);
+        color: var(--color-border-hover);
+        user-select: none;
+        pointer-events: none;
+        font-family: serif;
+        transition: color var(--dur-slow) var(--ease-out);
+        /* slow drift on load */
+        animation: glyph-fade-in 2s var(--ease-out) both;
+    }
+
+    .corner-glyph--tl {
+        top: var(--space-6);
+        left: var(--space-8);
+    }
+    .corner-glyph--tr {
+        top: var(--space-6);
+        right: var(--space-8);
+    }
+    .corner-glyph--bl {
+        bottom: var(--space-6);
+        left: var(--space-8);
+    }
+    .corner-glyph--br {
+        bottom: var(--space-6);
+        right: var(--space-8);
+    }
+
+    @keyframes glyph-fade-in {
+        from {
+            opacity: 0;
+            transform: translateY(6px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 480px) {
+        .name {
+            font-size: var(--text-3xl);
+        }
+        .nav-btn {
+            width: 90vw;
+            max-width: var(--nav-button-w);
+        }
+        .corner-glyph--tr,
+        .corner-glyph--br {
+            display: none;
+        }
+    }
+
+    /* animation */
+    @keyframes title-glow-startup {
+        2%, 17%, 23%, 38%, 78%, 95% {
+            text-shadow: 0 0 2px var(--color-text), 0 0 5px var(--color-text), 0 0 15px var(--color-primary), 0 0 20px var(--color-primary);
+        }
+        0%, 14%, 32%, 90% {
+            text-shadow: none;
+        }
+
+        20%, 34%, 72% {
+            text-shadow:
+                0 0 2px var(--color-text),
+                0 0 4px var(--color-text);
+        }
+    }
+
+    @keyframes title-glow-flicker {
+        0%, 18%, 22%, 25%, 53%, 57%, 100% {
+            text-shadow: 0 0 2px var(--color-text), 0 0 5px var(--color-text), 0 0 15px var(--color-primary), 0 0 20px var(--color-primary);
+        }
+
+        20%, 24%, 55% {
+            text-shadow:
+                0 0 2px var(--color-text),
+                0 0 4px var(--color-text);
+        }
+
+        21%, 56% {
+            text-shadow: none;
+        }
+    }
+</style>
