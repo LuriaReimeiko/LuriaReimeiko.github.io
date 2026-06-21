@@ -4,65 +4,70 @@ interface Props {
     tag?: string;
     class?: string;
     scrambleChars?: string;
+    trigger?: string;
 }
 
-const {
-    text,
-    tag = "span",
-    class: className = "",
-    scrambleChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
-} = Astro.props;
+const { text, tag = 'span', class: className = '', scrambleChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', trigger } = Astro.props;
 
 const Tag = tag as any;
 ---
 
-<Tag class:list={["scramble", className]} data-original={text}>{text}</Tag>
+<Tag class:list={['scramble', className]} data-original={text} data-trigger={trigger}>
+    {text}
+</Tag>
 
 <script>
     // Attach scramble behaviour to all .scramble elements.
     // Safe to call multiple times (View Transitions re-run scripts).
     function initScramble() {
-        document.querySelectorAll<HTMLElement>(".scramble").forEach((el) => {
-            // Prevent double-init
+        document.querySelectorAll<HTMLElement>('.scramble').forEach((el) => {
             if (el.dataset.scrambleInit) return;
-            el.dataset.scrambleInit = "1";
+            el.dataset.scrambleInit = '1';
 
             const original = el.dataset.original ?? el.innerText;
-            const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+
             let interval: ReturnType<typeof setInterval> | undefined;
 
-            el.addEventListener("mouseenter", () => {
+            const triggerSelector = el.dataset.trigger;
+
+            const trigger =
+                triggerSelector === 'parent' ? el.parentElement
+                : triggerSelector ? el.closest(triggerSelector)
+                : el;
+
+            if (!trigger) return;
+
+            trigger.addEventListener('mouseenter', () => {
                 clearInterval(interval);
+
                 interval = setInterval(() => {
                     el.innerText = original
-                        .split("")
-                        .map((ch) =>
-                            ch === " "
-                                ? " "
-                                : chars[
-                                      Math.floor(Math.random() * chars.length)
-                                  ],
-                        )
-                        .join("");
+                        .split('')
+                        .map((ch) => (ch === ' ' ? ' ' : chars[Math.floor(Math.random() * chars.length)]))
+                        .join('');
                 }, 50);
             });
 
-            el.addEventListener("mouseleave", () => {
+            trigger.addEventListener('mouseleave', () => {
                 let iteration = 0;
+
                 clearInterval(interval);
+
                 interval = setInterval(() => {
                     el.innerText = original
-                        .split("")
+                        .split('')
                         .map((ch, i) => {
                             if (i < iteration) return original[i];
-                            return ch === " "
-                                ? " "
-                                : chars[
-                                      Math.floor(Math.random() * chars.length)
-                                  ];
+
+                            return ch === ' ' ? ' ' : chars[Math.floor(Math.random() * chars.length)];
                         })
-                        .join("");
-                    if (iteration >= original.length) clearInterval(interval);
+                        .join('');
+
+                    if (iteration >= original.length) {
+                        clearInterval(interval);
+                    }
+
                     iteration += 1 / 3;
                 }, 30);
             });
@@ -70,5 +75,5 @@ const Tag = tag as any;
     }
 
     initScramble();
-    document.addEventListener("astro:page-load", initScramble);
+    document.addEventListener('astro:page-load', initScramble);
 </script>

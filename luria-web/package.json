@@ -18,6 +18,8 @@
   },
   "devDependencies": {
     "@types/node": "^26.0.0",
+    "prettier": "^3.8.4",
+    "prettier-plugin-astro": "^0.14.1",
     "tsx": "^4.22.4"
   }
 }

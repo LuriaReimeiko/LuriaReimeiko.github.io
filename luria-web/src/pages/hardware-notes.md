@@ -12,16 +12,17 @@ _Generated from `src/data/hardware-nodes.ts`._
 
 ## Devices
 
+| Item | Description | Status | Date | Link |
+|---|---|---|---|---|
+| Laptop | Samsung Galaxy Book2 Pro | ✦ owned | 0000-00-00 |  |
+| Phone | Xiaomi Redmi Note 10T 5G | ✦ owned | 0000-00-00 |  |
+
 ### Desktop PC
 
 | Item | Description | Status | Date | Link |
 |---|---|---|---|---|
-| CPU | Your CPU here | ✦ owned | 2024-01-01 |  |
-| GPU | Your GPU here | ✦ owned | 2024-01-01 |  |
-
-### Laptop
-
-### Phone
+| CPU | Your CPU here | ✦ owned | 0000-00-00 |  |
+| GPU | RTX 2080Ti EVGA Black | ✦ owned | 0000-00-00 |  |
 
 ## I/O
 
@@ -44,6 +45,14 @@ _Generated from `src/data/hardware-nodes.ts`._
 ### Accessories
 
 <!-- AUTO-GENERATED:END -->
+
+
+
+
+
+
+
+
 
 ## Notes
 
