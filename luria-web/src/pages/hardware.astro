@@ -32,7 +32,7 @@ import BackButton from '@components/BackButton.astro';
 
     <a
       class="notes-link"
-      href="/hardware-notes/index.md"
+      href="/hardware-notes/"
       target="_blank"
       rel="noopener"
     >readable list &#8599;</a>
@@ -47,10 +47,11 @@ import BackButton from '@components/BackButton.astro';
   .constellation-root {
     position: relative;
     z-index: var(--z-content);
+    /* No fixed max-width/max-height — scales proportionally with viewport
+       on large/ultra-wide screens instead of going inert past an arbitrary
+       cap. A themed container wrapping this can constrain it further later. */
     width: min(92vw, 92dvh);
     height: min(92vw, 92dvh);
-    max-width: 900px;
-    max-height: 900px;
   }
 
   #constellation-svg {
@@ -198,6 +199,28 @@ import BackButton from '@components/BackButton.astro';
   .notes-link:hover {
     color: var(--color-primary);
   }
+
+  /* ── Mobile (phone-width screens) ──
+     Matches the breakpoint already used on the homepage (480px) for
+     consistency across the site. */
+  @media (max-width: 480px) {
+    .breadcrumb {
+      max-width: 92vw;
+      flex-wrap: wrap;
+      justify-content: center;
+      row-gap: var(--space-2);
+    }
+
+    .notes-link {
+      font-size: 0.625rem;
+      top: var(--space-4);
+      right: var(--space-4);
+    }
+
+    .card-focus__panel {
+      padding: var(--space-6) var(--space-4);
+    }
+  }
 </style>
 
 <script>
@@ -300,6 +323,15 @@ import BackButton from '@components/BackButton.astro';
         group.appendChild(path);
       }
 
+      // Measured once per render (not per-node): converts the hit-area's
+      // fixed SVG user-space size into a viewport-aware scale, so the
+      // effective on-screen tap target stays comfortable even when the
+      // SVG's rendered container is small (e.g. a phone-width viewport).
+      const containerPx = svg!.getBoundingClientRect().width || SVG_SIZE;
+      const unitsPerScreenPx = SVG_SIZE / containerPx;
+      const MIN_HIT_SCREEN_PX = 44; // standard comfortable touch target
+      const hitScale = Math.max(1, (MIN_HIT_SCREEN_PX * unitsPerScreenPx) / 56);
+
       for (const ln of laidOut) {
         const node = findNode(ln.id);
         if (!node) continue;
@@ -317,8 +349,16 @@ import BackButton from '@components/BackButton.astro';
         // Without this, a hollow ring (fill: none) only registers clicks on
         // its stroke — the interior and everything around the label is dead
         // space. This rect is invisible but covers star + label generously.
-        const HIT_W = 64;
-        const HIT_H = 56;
+        //
+        // Sizing note: these are SVG user-space units (viewBox is 1000x1000),
+        // not screen pixels. As the SVG's rendered container shrinks (e.g.
+        // on a phone-width viewport), a fixed unit size shrinks right along
+        // with it — a 64-unit hit area can end up as small as ~22 actual
+        // screen px on a narrow phone, too small to comfortably tap. So the
+        // unit size is scaled inversely with the container's rendered size,
+        // keeping the EFFECTIVE on-screen tap target roughly constant.
+        const HIT_W = 64 * hitScale;
+        const HIT_H = 56 * hitScale;
         const hitArea = svgEl('rect', {
           class: 'node-hit-area',
           x: -HIT_W / 2,

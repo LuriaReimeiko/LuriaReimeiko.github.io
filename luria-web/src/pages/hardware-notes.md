@@ -1,3 +1,9 @@
+---
+layout: ../layouts/markdown.astro
+title: Hardware
+description: Hardware, in readable list form.
+---
+
 <!-- AUTO-GENERATED:BEGIN — do not edit between these markers, regenerated on build -->
 
 # Hardware
@@ -39,5 +45,6 @@ _Generated from `src/data/hardware-nodes.ts`._
 
 <!-- AUTO-GENERATED:END -->
 
+## Notes
 
-
+_Add your own notes here — preserved across regenerations._

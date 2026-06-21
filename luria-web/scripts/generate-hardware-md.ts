@@ -14,13 +14,42 @@
 //     hand-written section below the marker.
 // ============================================================
 
+// ============================================================
+// Generates src/pages/hardware-notes.md from src/data/hardware-nodes.ts
+//
+// This is a real Astro page (not a public/ static asset) — Astro's
+// built-in markdown processor renders it automatically, wrapped in
+// src/layouts/markdown.astro (site palette + font only, no
+// constellation theming). Routed at /hardware-notes/.
+//
+// Run manually:        npx tsx scripts/generate-hardware-md.ts
+// Or wire into build:  "prebuild": "tsx scripts/generate-hardware-md.ts"
+//
+// Behavior:
+//   - Categories become "## Label" headers (nested by depth: "##", "###", …)
+//   - Cards become rows in a table under their parent category's header
+//   - The whole generated block is wrapped between two markers.
+//     Anything you hand-write BELOW the closing marker is preserved
+//     across regenerations — use that space for prose notes.
+//   - If the file doesn't exist yet, it's created with an empty
+//     hand-written section below the marker.
+// ============================================================
+
 import { writeFileSync, readFileSync, existsSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { hardwareNodes, childrenOf, type HardwareNode } from '../src/data/hardware-nodes.ts';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const OUT_PATH = join(__dirname, '../public/hardware-notes/index.md');
+const OUT_PATH = join(__dirname, '../src/pages/hardware-notes.md');
+
+const FRONTMATTER = [
+  '---',
+  'layout: ../layouts/markdown.astro',
+  'title: Hardware',
+  'description: Hardware, in readable list form.',
+  '---',
+].join('\n');
 
 const BEGIN_MARKER = '<!-- AUTO-GENERATED:BEGIN — do not edit between these markers, regenerated on build -->';
 const END_MARKER   = '<!-- AUTO-GENERATED:END -->';
@@ -90,7 +119,7 @@ function main() {
     }
   }
 
-  writeFileSync(OUT_PATH, generated + handWritten, 'utf-8');
+  writeFileSync(OUT_PATH, `${FRONTMATTER}\n\n${generated}${handWritten}`, 'utf-8');
   console.log(`Generated ${OUT_PATH} (${hardwareNodes.length} nodes)`);
 }
 
