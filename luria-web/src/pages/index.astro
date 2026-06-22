@@ -1,17 +1,17 @@
 ---
-import Base from "@layouts/base.astro";
-import StarfieldCanvas from "@components/StarfieldCanvas.astro";
-import ScrambleText from "@components/ScrambleText.astro";
+import Base from '@layouts/base.astro';
+import StarfieldCanvas from '@components/StarfieldCanvas.astro';
+import ScrambleText from '@components/ScrambleText.astro';
 
-import { Image } from "astro:assets";
+import { Image } from 'astro:assets';
 
 // Nav items in the order you specified
 const navItems = [
-    { label: "portfolio", href: "/portfolio", ready: true },
-    { label: "projects", href: "/projects", ready: true },
-    { label: "hardware", href: "/hardware", ready: true },
-    { label: "software", href: "/software", ready: true },
-    { label: "music", href: "/music", ready: true },
+    { label: 'portfolio', href: '/portfolio', ready: true },
+    { label: 'projects', href: '/projects', ready: true },
+    { label: 'hardware', href: '/hardware', ready: true },
+    { label: 'software', href: '/software', ready: true },
+    { label: 'music', href: '/music', ready: true },
 ];
 ---
 
@@ -19,42 +19,43 @@ const navItems = [
     <div class="page home">
         <StarfieldCanvas />
 
+        <!-- Identity -->
         <header class="identity" transition:name="identity">
             <div class="avatar-wrap">
-                <Image
-                    class="avatar"
-                    src="/avatar.png"
-                    alt="Luria Reimeiko"
-                    width="72"
-                    height="72"
-                />
+                <Image class="avatar" src="/avatar.png" alt="Luria Reimeiko" width="72" height="72" />
             </div>
 
             <h1 class="name name-top font-display">Luria</h1>
             <div class="separator"></div>
             <h1 class="name name-bottom font-display">Reimeiko</h1>
-            <p class="tagline font-body">
-                — game developer · designer —
-            </p>
-            <p class="tagline font-body text-dim">
-                giving life to pixels
-            </p>
+            <p class="tagline font-body">— game developer/designer —</p>
+            <p class="tagline font-body text-dim short-line">giving life to pixels</p>
         </header>
 
         <!-- Navigation -->
         <nav class="nav" aria-label="Site navigation">
             {
                 navItems.map((item) => (
-                    <a
-                        href={item.href}
-                        class="nav-btn"
-                        aria-label={`Go to ${item.label}`}
-                    >
-                        <ScrambleText text={item.label} tag="span" />
+                    <a href={item.href} class="nav-btn" aria-label={`Go to ${item.label}`}>
+                        <ScrambleText text={item.label} trigger=".nav-btn" tag="span" />
                     </a>
                 ))
             }
         </nav>
+
+        <footer class="footer socials">
+            <nav aria-label="Social and contact links">
+                <a href="https://www.youtube.com/@LuriaReimeiko" target="_blank" aria-label="Youtube" class="social_a">
+                    <i class="bxl bx-youtube" aria-hidden="true"></i>
+                </a>
+                <a href="https://github.com/LuriaReimeiko" target="_blank" aria-label="Github" class="social_a">
+                    <i class="bxl bx-github" aria-hidden="true"></i>
+                </a>
+                <a href="mailto:Reimeiko@proton.me" aria-label="Email us" class="social_a">
+                    <i class="bx bx-envelope-alt" aria-hidden="true"></i>
+                </a>
+            </nav>
+        </footer>
 
         <!-- Deco -->
         <div class="corner-glyph corner-glyph--tl" aria-hidden="true">✦</div>
@@ -65,13 +66,38 @@ const navItems = [
 </Base>
 
 <style>
-    /* shell */
+    /* Shell */
     .home {
         justify-content: flex-start;
         align-items: center;
     }
 
-    /* ── Identity block ── */
+    .footer {
+        display: flex;
+        gap: var(--space-8);
+        position: fixed;
+        bottom: var(--space-8);
+    }
+
+    .socials {
+        font-size: var(--text-2xl);
+        color: rgba(var(--color-primary-rgb), 0.5);
+        text-decoration: none;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    .social_a {
+        justify-content: center;
+        display: inline-flex;
+        color: inherit;
+        text-decoration: none;
+        transition: color var(--dur-base) var(--ease-in-out);
+    }
+    .social_a:hover {
+        color: rgba(var(--color-primary-rgb), 1);
+    }
+
+    /* Identity block */
     .identity {
         position: relative;
         z-index: var(--z-content);
@@ -98,7 +124,10 @@ const navItems = [
     }
 
     .avatar-wrap:hover {
-        box-shadow: 0 0 30px var(--color-glow), 0 0 20px var(--color-glow), 0 0 15px var(--color-glow);
+        box-shadow:
+            0 0 30px var(--color-glow),
+            0 0 20px var(--color-glow),
+            0 0 15px var(--color-glow);
     }
 
     .avatar {
@@ -114,7 +143,6 @@ const navItems = [
         width: 100%;
         height: 100%;
     }
-
 
     .separator {
         display: block;
@@ -135,7 +163,9 @@ const navItems = [
         line-height: 1;
     }
     .name:hover {
-        animation: title-glow-startup 1.5s forwards, title-glow-flicker 4s 1.5s infinite;
+        animation:
+            title-glow-startup 1.5s forwards,
+            title-glow-flicker 4s 1.5s infinite;
     }
 
     .name-top {
@@ -154,7 +184,7 @@ const navItems = [
         text-transform: lowercase;
     }
 
-    /* ── Nav ── */
+    /* Nav */
     .nav {
         position: relative;
         z-index: var(--z-content);
@@ -199,7 +229,7 @@ const navItems = [
         outline-offset: 3px;
     }
 
-    /* ── Corner glyphs ── */
+    /* Corner glyphs */
     .corner-glyph {
         position: fixed;
         z-index: var(--z-content);
@@ -241,7 +271,7 @@ const navItems = [
         }
     }
 
-    /* ── Responsive ── */
+    /* Responsive */
     @media (max-width: 480px) {
         .name {
             font-size: var(--text-3xl);
@@ -256,16 +286,30 @@ const navItems = [
         }
     }
 
-    /* animation */
+    /* Aimation */
     @keyframes title-glow-startup {
-        2%, 17%, 23%, 38%, 78%, 95% {
-            text-shadow: 0 0 2px var(--color-text), 0 0 5px var(--color-text), 0 0 15px var(--color-primary), 0 0 20px var(--color-primary);
+        2%,
+        17%,
+        23%,
+        38%,
+        78%,
+        95% {
+            text-shadow:
+                0 0 2px var(--color-text),
+                0 0 5px var(--color-text),
+                0 0 15px var(--color-primary),
+                0 0 20px var(--color-primary);
         }
-        0%, 14%, 32%, 90% {
+        0%,
+        14%,
+        32%,
+        90% {
             text-shadow: none;
         }
 
-        20%, 34%, 72% {
+        20%,
+        34%,
+        72% {
             text-shadow:
                 0 0 2px var(--color-text),
                 0 0 4px var(--color-text);
@@ -273,17 +317,30 @@ const navItems = [
     }
 
     @keyframes title-glow-flicker {
-        0%, 18%, 22%, 25%, 53%, 57%, 100% {
-            text-shadow: 0 0 2px var(--color-text), 0 0 5px var(--color-text), 0 0 15px var(--color-primary), 0 0 20px var(--color-primary);
+        0%,
+        18%,
+        22%,
+        25%,
+        53%,
+        57%,
+        100% {
+            text-shadow:
+                0 0 2px var(--color-text),
+                0 0 5px var(--color-text),
+                0 0 15px var(--color-primary),
+                0 0 20px var(--color-primary);
         }
 
-        20%, 24%, 55% {
+        20%,
+        24%,
+        55% {
             text-shadow:
                 0 0 2px var(--color-text),
                 0 0 4px var(--color-text);
         }
 
-        21%, 56% {
+        21%,
+        56% {
             text-shadow: none;
         }
     }

@@ -1,14 +1,14 @@
 ---
 interface Props {
-  href?: string;
-  label?: string;
+    href?: string;
+    label?: string;
 }
 const { href = '/', label = 'back' } = Astro.props;
 ---
 
 <a href={href} class="back-btn" aria-label="Go back">
-  <svg viewBox="0 0 16 16" aria-hidden="true">
-    <polyline points="10 3 5 8 10 13" />
-  </svg>
-  {label}
+    <svg viewBox="0 0 16 16" aria-hidden="true">
+        <polyline points="10 3 5 8 10 13"></polyline>
+    </svg>
+    {label}
 </a>

@@ -1,425 +1,539 @@
 ---
-import Base from '@layouts/base.astro';
-import StarfieldCanvas from '@components/StarfieldCanvas.astro';
-import BackButton from '@components/BackButton.astro';
+import Base from "@layouts/base.astro";
+import StarfieldCanvas from "@components/StarfieldCanvas.astro";
+import BackButton from "@components/BackButton.astro";
+import { Image } from "astro:assets";
+import type { ImageMetadata } from "astro";
+import { hardwareNodes } from "@data/hardware-nodes";
+
+// ── Local image pipeline ──────────────────────────────────────
+// Astro's <Image> component requires a build-time import — it cannot
+// take an arbitrary runtime string path the way a plain <img src> can.
+// Since which node's image to show is only known at runtime (whichever
+// star the visitor clicks), every possible local image is glob-imported
+// here up front, and each gets pre-rendered into a hidden <Image> in
+// the static template below. The runtime script then RELOCATES the
+// already-optimized <img> element into the focus panel instead of
+// building new image markup from scratch — it never constructs an
+// <Image>, since that's impossible outside build-time Astro syntax.
+const localImages = import.meta.glob<{ default: ImageMetadata }>(
+  "/src/images/hardware/*.{jpeg,jpg,png,gif,webp}"
+);
+
+function isLocalImage(path: string): boolean {
+  return !path.startsWith("http://") && !path.startsWith("https://");
+}
+
+// Every card node with a LOCAL image gets pre-rendered below. External
+// URLs are handled entirely at runtime by the existing plain-<img>
+// string-building path — they never need a build-time import.
+const cardsWithLocalImages = hardwareNodes.filter(
+  (n) => n.kind === "card" && n.image && isLocalImage(n.image)
+);
+
+function resolveLocalImage(filename: string) {
+  const key = `/src/images/hardware/${filename}`;
+  const loader = localImages[key];
+  if (!loader) {
+    throw new Error(
+      `[hardware] local image "${filename}" not found in src/images/hardware/. ` +
+      `Check the filename in hardware-nodes.ts matches exactly (case-sensitive).`
+    );
+  }
+  return loader();
+}
 ---
 
-<Base title="hardware" description="Hardware, charted as constellations.">
-  <div class="page hardware-page">
-    <StarfieldCanvas spacing={44} />
-    <BackButton href="/" label="home" />
+<Base title="hardware">
+    <div class="page hardware-page">
+        <StarfieldCanvas spacing={44} />
+        <BackButton href="/" label="home" />
 
-    <!-- Breadcrumb / constellation switcher, bottom of viewport -->
-    <nav id="breadcrumb" class="breadcrumb" aria-label="Constellation path"></nav>
+        <!-- Breadcrumb -->
+        <nav id="breadcrumb" class="breadcrumb" aria-label="Constellation path">
+        </nav>
 
-    <!-- The constellation itself -->
-    <div id="constellation-root" class="constellation-root">
-      <svg
-        id="constellation-svg"
-        viewBox="0 0 1000 1000"
-        preserveAspectRatio="xMidYMid meet"
-        aria-label="Hardware constellation map"
-      ></svg>
+        <!-- The constellation itself -->
+        <div id="constellation-root" class="constellation-root">
+            <svg
+                id="constellation-svg"
+                viewBox="0 0 1000 1000"
+                preserveAspectRatio="xMidYMid meet"
+                aria-label="Hardware constellation map"></svg>
+        </div>
+
+        <!-- Focused card overlay -->
+        <div id="card-focus" class="card-focus" hidden>
+            <div class="card-focus__scrim" data-close></div>
+            <article
+                class="card-focus__panel panel panel--glow"
+                id="card-focus-panel"
+            >
+                <!-- populated by JS -->
+            </article>
+        </div>
+
+        <a
+            class="notes-link"
+            href="/hardware-notes/"
+            target="_blank"
+            rel="noopener">readable list &#8599;</a
+        >
+
+        <div id="local-image-pool" hidden aria-hidden="true">
+            {await Promise.all(cardsWithLocalImages.map(async (node) => (
+                <div data-image-for={node.id}>
+                    <Image
+                        src={resolveLocalImage(node.image!)}
+                        alt={node.label}
+                        width={400}
+                        height={400}
+                    />
+                </div>
+            )))}
+        </div>
     </div>
-
-    <!-- Focused card overlay -->
-    <div id="card-focus" class="card-focus" hidden>
-      <div class="card-focus__scrim" data-close></div>
-      <article class="card-focus__panel panel panel--glow" id="card-focus-panel">
-        <!-- populated by JS -->
-      </article>
-    </div>
-
-    <a
-      class="notes-link"
-      href="/hardware-notes/index.md"
-      target="_blank"
-      rel="noopener"
-    >readable list &#8599;</a>
-  </div>
 </Base>
 
 <style>
-  .hardware-page {
-    justify-content: center;
-  }
+    .hardware-page {
+        justify-content: center;
+    }
 
-  .constellation-root {
-    position: relative;
-    z-index: var(--z-content);
-    width: min(92vw, 92dvh);
-    height: min(92vw, 92dvh);
-    max-width: 900px;
-    max-height: 900px;
-  }
+    .constellation-root {
+        position: relative;
+        z-index: var(--z-content);
+        width: min(92vw, 92dvh);
+        height: min(92vw, 92dvh);
+    }
 
-  #constellation-svg {
-    width: 100%;
-    height: 100%;
-    overflow: visible;
-  }
+    #constellation-svg {
+        width: 100%;
+        height: 100%;
+        overflow: visible;
+    }
 
-  /* Breadcrumb / constellation switcher */
-  .breadcrumb {
-    position: fixed;
-    bottom: var(--space-6);
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: var(--z-top);
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
-    font-family: var(--font-body);
-    font-size: var(--text-xs);
-    letter-spacing: 0.08em;
-  }
+    /* Breadcrumb / constellation switcher */
+    .breadcrumb {
+        position: fixed;
+        bottom: var(--space-6);
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: var(--z-top);
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        font-family: var(--font-body);
+        font-size: var(--text-xs);
+        letter-spacing: 0.08em;
+    }
 
-  .breadcrumb button {
-    background: var(--color-panel);
-    border: 1px solid var(--color-border);
-    border-radius: 4px;
-    color: var(--color-text-dim);
-    padding: var(--space-1) var(--space-3);
-    cursor: pointer;
-    font-family: inherit;
-    font-size: inherit;
-    text-transform: lowercase;
-    transition: color var(--dur-base) var(--ease-out), border-color var(--dur-base) var(--ease-out);
-  }
+    :global(.breadcrumb button) {
+        background: var(--color-panel);
+        border: 1px solid var(--color-border);
+        border-radius: 4px;
+        color: var(--color-text-dim);
+        padding: var(--space-1) var(--space-3);
+        cursor: pointer;
+        font-family: inherit;
+        font-size: inherit;
+        text-transform: lowercase;
+        transition:
+            color var(--dur-base) var(--ease-out),
+            border-color var(--dur-base) var(--ease-out);
+    }
 
-  .breadcrumb button:hover,
-  .breadcrumb button.is-current {
-    color: var(--color-text);
-    border-color: var(--color-border-hover);
-  }
+    :global(.breadcrumb button:hover,
+    .breadcrumb button.is-current) {
+        color: var(--color-text);
+        border-color: var(--color-border-hover);
+    }
 
-  .breadcrumb .sep {
-    color: var(--color-text-dim);
-    opacity: 0.4;
-  }
+    :global(.breadcrumb .sep) {
+        color: var(--color-text-dim);
+        opacity: 0.8;
+    }
 
-  /* Constellation node styling (classes applied via JS to SVG els) */
-  :global(.node) {
-    cursor: pointer;
-  }
+    /* Constellation node styling (classes applied via JS to SVG els) */
+    :global(.node) {
+        cursor: pointer;
+    }
 
-  :global(.node-hit-area) {
-    /* Invisible but IS the actual click/hover target — pointer-events
-       must stay enabled (default) even though fill is transparent. */
-    transition: fill var(--dur-base) var(--ease-out);
-  }
+    :global(.node-star) {
+        transition:
+            r var(--dur-base) var(--ease-out),
+            opacity var(--dur-base) var(--ease-out);
+        pointer-events: none;
+    }
 
-  :global(.node:hover .node-hit-area) {
-    fill: var(--color-glow);
-  }
+    :global(.node:hover .node-star) {
+        opacity: 1;
+    }
 
-  :global(.node-star) {
-    transition: r var(--dur-base) var(--ease-out), opacity var(--dur-base) var(--ease-out);
-    /* The star itself never needs to catch events — the hit-area rect
-       (rendered behind it) owns all pointer interaction for this node. */
-    pointer-events: none;
-  }
+    :global(.node-label) {
+        fill: var(--color-text-dim);
+        font-family: var(--font-body);
+        font-size: 13px;
+        text-anchor: middle;
+        pointer-events: none;
+        transition: fill var(--dur-base) var(--ease-out);
+    }
 
-  :global(.node:hover .node-star) {
-    opacity: 1;
-  }
+    :global(.node:hover .node-label) {
+        fill: var(--color-text);
+    }
 
-  :global(.node-label) {
-    fill: var(--color-text-dim);
-    font-family: var(--font-body);
-    font-size: 13px;
-    text-anchor: middle;
-    pointer-events: none;
-    transition: fill var(--dur-base) var(--ease-out);
-  }
+    :global(.constellation-edge) {
+        stroke: rgba(213, 184, 255, 0.45);
+        stroke-width: 1.5;
+        fill: none;
+    }
 
-  :global(.node:hover .node-label) {
-    fill: var(--color-text);
-  }
+    .card-focus {
+        position: fixed;
+        inset: 0;
+        z-index: var(--z-overlay);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
 
-  :global(.constellation-edge) {
-    /* NOTE: --color-border is rgba(...,0.12) by design (meant for subtle
-       hairline borders). Stacking that with an element-level opacity here
-       compounds into ~4% effective alpha — invisible in practice. This
-       curve is a primary navigational element, not a subtle hint, so it
-       gets its own brighter, dedicated value instead of reusing --color-border. */
-    stroke: rgba(213, 184, 255, 0.45);
-    stroke-width: 1.5;
-    fill: none;
-  }
+    .card-focus[hidden] {
+        display: none !important;
+    }
 
-  /* Card focus overlay
-     NOTE: don't rely on [hidden] alone — it has the same specificity as
-     a class selector, and source order in Astro's injected <style> can
-     make .card-focus win the tie, leaving the panel visible-but-empty.
-     [hidden] gets display:none !important here so it always wins. */
-  .card-focus {
-    position: fixed;
-    inset: 0;
-    z-index: var(--z-overlay);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
+    .card-focus__scrim {
+        position: absolute;
+        inset: 0;
+        background: rgba(24, 22, 30, 0.65);
+        backdrop-filter: blur(6px);
+    }
 
-  .card-focus[hidden] {
-    display: none !important;
-  }
+    .card-focus__panel {
+        position: relative;
+        width: min(86vw, 420px);
+        padding: var(--space-8) var(--space-6);
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-4);
+    }
 
-  .card-focus__scrim {
-    position: absolute;
-    inset: 0;
-    background: rgba(24, 22, 30, 0.65);
-    backdrop-filter: blur(6px);
-  }
+    .card-focus__panel.has-image {
+        width: min(90vw, 620px);
+    }
 
-  .card-focus__panel {
-    position: relative;
-    width: min(86vw, 420px);
-    padding: var(--space-8) var(--space-6);
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-4);
-  }
+    /* Everything below targets elements created by cardPanelEl.innerHTML in script */
+    :global(.card-focus__body) {
+        display: flex;
+        gap: var(--space-6);
+        align-items: stretch;
+    }
 
-  .notes-link {
-    position: fixed;
-    top: var(--space-6);
-    right: var(--space-6);
-    z-index: var(--z-top);
-    color: var(--color-text-dim);
-    font-family: var(--font-body);
-    font-size: var(--text-xs);
-    letter-spacing: 0.08em;
-    text-decoration: none;
-    transition: color var(--dur-base) var(--ease-out);
-  }
+    :global(.card-focus__text) {
+        flex: 1 1 auto;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-4);
+    }
 
-  .notes-link:hover {
-    color: var(--color-primary);
-  }
+    :global(.card-focus__image-wrap) {
+        flex: 0 0 auto;
+        width: 38%;
+        max-width: 200px;
+        min-height: 120px;
+    }
+
+    :global(.card-focus__image) {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 8px;
+        border: 1px solid var(--color-border);
+    }
+
+    .notes-link {
+        position: fixed;
+        top: var(--space-6);
+        right: var(--space-6);
+        z-index: var(--z-top);
+        color: var(--color-text-dim);
+        font-family: var(--font-body);
+        font-size: var(--text-xs);
+        letter-spacing: 0.08em;
+        text-decoration: none;
+        transition: color var(--dur-base) var(--ease-out);
+    }
+
+    .notes-link:hover {
+        color: var(--color-primary);
+    }
+
+    /* Mobile (phone-width screens) */
+    @media (max-width: 480px) {
+        .breadcrumb {
+            max-width: 92vw;
+            flex-wrap: wrap;
+            justify-content: center;
+            row-gap: var(--space-2);
+        }
+
+        .notes-link {
+            font-size: 0.625rem;
+            top: var(--space-4);
+            right: var(--space-4);
+        }
+
+        .card-focus__panel {
+            padding: var(--space-6) var(--space-4);
+        }
+
+        :global(.card-focus__body) {
+            flex-direction: column-reverse;
+            gap: var(--space-4);
+        }
+
+        :global(.card-focus__image-wrap) {
+            width: 100%;
+            max-width: none;
+            /* In the stacked mobile layout there's no "text column
+               height" to stretch-match against, so use a fixed
+               comfortable height instead of the desktop stretch rule. */
+            height: 180px;
+            align-self: stretch;
+        }
+    }
 </style>
 
 <script>
-  import { childrenOf, findNode, pathTo, type HardwareNode } from '@data/hardware-nodes';
-  import { layoutConstellation, orderNodesForPath, straightPathThrough, type LayoutNode } from '@lib/seeded-layout';
+    import {
+        childrenOf,
+        findNode,
+        pathTo,
+        type HardwareNode,
+    } from "@data/hardware-nodes";
+    import {
+        layoutConstellation,
+        orderNodesForPath,
+        straightPathThrough,
+        type LayoutNode,
+    } from "@lib/seeded-layout";
 
-  const SVG_SIZE = 1000;
-  const NS = 'http://www.w3.org/2000/svg';
+    const SVG_SIZE = 1000;
+    const NS = "http://www.w3.org/2000/svg";
 
-  function svgEl<K extends keyof SVGElementTagNameMap>(tag: K, attrs: Record<string, string | number> = {}) {
-    const el = document.createElementNS(NS, tag);
-    for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, String(v));
-    return el;
-  }
+    function svgEl<K extends keyof SVGElementTagNameMap>(
+        tag: K,
+        attrs: Record<string, string | number> = {},
+    ) {
+        const el = document.createElementNS(NS, tag);
+        for (const [k, v] of Object.entries(attrs))
+            el.setAttribute(k, String(v));
+        return el;
+    }
 
-  /** How "present" a card's date is: 0 (old) to 1 (today). Drives accent shift. */
-  function recencyOf(dateStr: string | undefined): number {
-    if (!dateStr) return 0;
-    const date = new Date(dateStr).getTime();
-    const now = Date.now();
-    const fiveYearsMs = 5 * 365 * 24 * 60 * 60 * 1000;
-    const age = now - date;
-    return Math.max(0, Math.min(1, 1 - age / fiveYearsMs));
-  }
+    /** How recent a card's date is: 0 (old) to 1 (today). Drives accent shift. */
+    function recencyOf(dateStr: string | undefined): number {
+        if (!dateStr) return 0;
+        const date = new Date(dateStr).getTime();
+        if (Number.isNaN(date)) {
+            console.warn(`[hardware] invalid date string "${dateStr}" — falling back to no recency boost`);
+            return 0;
+        }
+        const now = Date.now();
+        const fiveYearsMs = 5 * 365 * 24 * 60 * 60 * 1000;
+        const age = now - date;
+        return Math.max(0, Math.min(1, 1 - age / fiveYearsMs));
+    }
 
-  function lerpColor(t: number): string {
-    // accent (#9c8abd) -> primary (#d5b8ff) as t goes 0 -> 1
-    const a = { r: 0x9c, g: 0x8a, b: 0xbd };
-    const b = { r: 0xd5, g: 0xb8, b: 0xff };
-    const r = Math.round(a.r + (b.r - a.r) * t);
-    const g = Math.round(a.g + (b.g - a.g) * t);
-    const bl = Math.round(a.b + (b.b - a.b) * t);
-    return `rgb(${r}, ${g}, ${bl})`;
-  }
+    function lerpColor(t: number): string {
+        // accent (#9c8abd) -> primary (#d5b8ff) as t goes 0 -> 1
+        const a = { r: 0x9c, g: 0x8a, b: 0xbd };
+        const b = { r: 0xd5, g: 0xb8, b: 0xff };
+        const r = Math.round(a.r + (b.r - a.r) * t);
+        const g = Math.round(a.g + (b.g - a.g) * t);
+        const bl = Math.round(a.b + (b.b - a.b) * t);
+        return `rgb(${r}, ${g}, ${bl})`;
+    }
 
-  // ── Lifecycle note ──────────────────────────────────────────
-  // Astro View Transitions swap the DOM but inline <script> blocks are
-  // NOT guaranteed to re-run their top-level code on every navigation.
-  // Capturing elements (svg, breadcrumbEl, ...) ONCE at module scope and
-  // closing over them in handlers registered once is exactly how you end
-  // up with listeners firing against detached nodes from a previous page
-  // — nothing throws, render() just paints into a void. Every element
-  // lookup AND every listener bind must happen inside initHardwarePage(),
-  // re-run from scratch on every 'astro:page-load' (which fires on the
-  // first load too, so this is the single source of truth — no separate
-  // bare call at module bottom).
+    let teardown: (() => void) | null = null;
 
-  let teardown: (() => void) | null = null;
+    function initHardwarePage() {
+        if (teardown) teardown();
 
-  function initHardwarePage() {
-    if (teardown) teardown();
+        const svg = document.getElementById(
+            "constellation-svg",
+        ) as unknown as SVGSVGElement | null;
+        const breadcrumbEl = document.getElementById("breadcrumb");
+        const cardFocusEl = document.getElementById("card-focus");
+        const cardPanelEl = document.getElementById("card-focus-panel");
 
-    const svg = document.getElementById('constellation-svg') as unknown as SVGSVGElement | null;
-    const breadcrumbEl = document.getElementById('breadcrumb');
-    const cardFocusEl = document.getElementById('card-focus');
-    const cardPanelEl = document.getElementById('card-focus-panel');
+        if (!svg || !breadcrumbEl || !cardFocusEl || !cardPanelEl) return; // not this page, bail quietly
 
-    if (!svg || !breadcrumbEl || !cardFocusEl || !cardPanelEl) return; // not this page, bail quietly
+        function renderConstellation(parentId: string | null) {
+            svg!.innerHTML = "";
+            const nodes = childrenOf(parentId);
+            const seedKey = parentId ?? "root";
+            const { nodes: laidOut, suggestedScale } = layoutConstellation(
+                seedKey,
+                nodes.map((n) => n.id),
+                { innerRadius: 0.08, minDistance: 0.22 },
+            );
 
-    function renderConstellation(parentId: string | null) {
-      svg!.innerHTML = '';
-      const nodes = childrenOf(parentId);
-      const seedKey = parentId ?? 'root';
-      const { nodes: laidOut, suggestedScale } = layoutConstellation(
-        seedKey,
-        nodes.map((n) => n.id),
-        { innerRadius: 0.08, minDistance: 0.22 }
-      );
+            const cx = SVG_SIZE / 2;
+            const cy = SVG_SIZE / 2;
+            const baseR = (SVG_SIZE / 2) * 0.82 * suggestedScale;
 
-      const cx = SVG_SIZE / 2;
-      const cy = SVG_SIZE / 2;
-      const baseR = (SVG_SIZE / 2) * 0.82 * suggestedScale;
+            const screenPositions: LayoutNode[] = laidOut.map((ln) => ({
+                id: ln.id,
+                x: cx + (ln.x - 0.5) * baseR * 2,
+                y: cy + (ln.y - 0.5) * baseR * 2,
+                r: 0,
+            }));
 
-      // Convert to screen coords once, keeping the LayoutNode id attached
-      // so the connecting curve and the actual node rendering agree on
-      // exact positions.
-      const screenPositions: LayoutNode[] = laidOut.map((ln) => ({
-        id: ln.id,
-        x: cx + (ln.x - 0.5) * baseR * 2,
-        y: cy + (ln.y - 0.5) * baseR * 2,
-        r: 0
-      }));
+            const group = svgEl("g", { id: "layout-group" });
 
-      const group = svgEl('g', { id: 'layout-group' });
+            // Connect all nodes with decorative lines
+            if (screenPositions.length >= 2) {
+                const ordered = orderNodesForPath(screenPositions);
+                const pathData = straightPathThrough(ordered, 32);
+                const path = svgEl("path", {
+                    d: pathData,
+                    class: "constellation-edge",
+                    fill: "none",
+                });
+                group.appendChild(path);
+            }
 
-      // Connect all nodes with straight segments in perimeter-following
-      // order — angular-sort around centroid guarantees both no
-      // self-crossings AND that the line traces the shape's outline
-      // (e.g. goes the long way around an octagon) rather than cutting
-      // across the middle. Each segment stops short of both its nodes
-      // (the `gap` param) so lines don't visually touch the markers.
-      if (screenPositions.length >= 2) {
-        const ordered = orderNodesForPath(screenPositions);
-        const pathData = straightPathThrough(ordered, 14);
-        const path = svgEl('path', {
-          d: pathData,
-          class: 'constellation-edge',
-          fill: 'none',
-        });
-        group.appendChild(path);
-      }
+            const containerPx = svg!.getBoundingClientRect().width || SVG_SIZE;
+            const unitsPerScreenPx = SVG_SIZE / containerPx;
+            const MIN_HIT_SCREEN_PX = 44;
+            const hitScale = Math.max(
+                1,
+                (MIN_HIT_SCREEN_PX * unitsPerScreenPx) / 56,
+            );
 
-      for (const ln of laidOut) {
-        const node = findNode(ln.id);
-        if (!node) continue;
-        const { x, y } = screenPositions.find((p) => p.id === ln.id)!;
+            for (const ln of laidOut) {
+                const node = findNode(ln.id);
+                if (!node) continue;
+                const { x, y } = screenPositions.find((p) => p.id === ln.id)!;
 
-        const g = svgEl('g', {
-          class: 'node',
-          'data-id': node.id,
-          'data-kind': node.kind,
-          transform: `translate(${x}, ${y})`,
-        });
-        g.style.setProperty('view-transition-name', `node-${node.id}`);
+                const g = svgEl("g", {
+                    class: "node",
+                    "data-id": node.id,
+                    "data-kind": node.kind,
+                    transform: `translate(${x}, ${y})`,
+                });
+                g.style.setProperty("view-transition-name", `node-${node.id}`);
 
-        // Real rectangular hit area, independent of the visual star shape.
-        // Without this, a hollow ring (fill: none) only registers clicks on
-        // its stroke — the interior and everything around the label is dead
-        // space. This rect is invisible but covers star + label generously.
-        const HIT_W = 64;
-        const HIT_H = 56;
-        const hitArea = svgEl('rect', {
-          class: 'node-hit-area',
-          x: -HIT_W / 2,
-          y: -HIT_H / 2 + 4, // nudge down slightly to center over star+label as a unit
-          width: HIT_W,
-          height: HIT_H,
-          fill: 'transparent',
-        });
-        g.appendChild(hitArea);
+                // Real rectangular hit area, independent of the visual star shape.
+                const HIT_W = 64 * hitScale;
+                const HIT_H = 56 * hitScale;
+                const hitArea = svgEl("rect", {
+                    class: "node-hit-area",
+                    x: -HIT_W / 2,
+                    y: -HIT_H / 2 + 4, // nudge down slightly to center over star+label as a unit
+                    width: HIT_W,
+                    height: HIT_H,
+                    fill: "transparent",
+                });
+                g.appendChild(hitArea);
 
-        if (node.kind === 'category') {
-          // Hollow ringed star = a door into a sub-constellation
-          // NOTE: var() does not resolve inside plain SVG attributes set via
-          // setAttribute — only inside actual CSS (style=""/stylesheets).
-          // So color is applied via .style, not the attrs object.
-          const star = svgEl('circle', {
-            class: 'node-star',
-            r: 9,
-            fill: 'none',
-            'stroke-width': 2,
-            opacity: 0.85,
-          });
-          star.style.stroke = 'var(--color-accent)';
-          const inner = svgEl('circle', { r: 2.5 });
-          inner.style.fill = 'var(--color-accent)';
-          g.appendChild(star);
-          g.appendChild(inner);
-        } else {
-          // Filled star = content. Color shifts toward primary as date approaches now.
-          const t = recencyOf(node.date);
-          const color = lerpColor(t); // already a literal rgb(...) string — fine as an attr
-          const isWished = node.status === 'wished';
-          const star = svgEl('circle', {
-            class: 'node-star',
-            r: 7,
-            fill: isWished ? 'none' : color,
-            stroke: color,
-            'stroke-width': isWished ? 1.5 : 0,
-            opacity: 0.9,
-          });
-          g.appendChild(star);
+                if (node.kind === "category") {
+                    // NOTE: var() does not resolve inside plain SVG attributes set via
+                    // setAttribute, only inside actual CSS (style=""/stylesheets).
+                    // So color is applied via .style, not the attrs object.
+                    const star = svgEl("circle", {
+                        class: "node-star",
+                        r: 9,
+                        fill: "none",
+                        "stroke-width": 2,
+                        opacity: 0.85,
+                    });
+                    star.style.stroke = "var(--color-accent)";
+                    const inner = svgEl("circle", { r: 2.5 });
+                    inner.style.fill = "var(--color-accent)";
+                    g.appendChild(star);
+                    g.appendChild(inner);
+                } else {
+                    const t = recencyOf(node.date);
+                    const color = lerpColor(t);
+                    const isWished = node.status === "wished";
+                    const star = svgEl("circle", {
+                        class: "node-star",
+                        r: 7,
+                        fill: isWished ? "none" : color,
+                        stroke: color,
+                        "stroke-width": isWished ? 1.5 : 0,
+                        opacity: 0.9,
+                    });
+                    g.appendChild(star);
 
-          if (isWished) {
-            const wishMark = svgEl('text', {
-              x: 10, y: -8,
-              class: 'node-label',
-              'font-size': 10,
-            });
-            wishMark.style.fill = 'var(--color-primary)';
-            wishMark.textContent = '\u2606';
-            g.appendChild(wishMark);
-          }
+                    if (isWished) {
+                        const wishMark = svgEl("text", {
+                            x: 10,
+                            y: -8,
+                            class: "node-label",
+                            "font-size": 10,
+                        });
+                        wishMark.style.fill = "var(--color-primary)";
+                        wishMark.textContent = "\u2606";
+                        g.appendChild(wishMark);
+                    }
+                }
+
+                const label = svgEl("text", { class: "node-label", y: 22 });
+                label.textContent = node.label;
+                g.appendChild(label);
+
+                g.addEventListener("click", () => {
+                    if (node.kind === "category") {
+                        location.hash = "#" + node.id;
+                    } else {
+                        openCardFocus(node);
+                    }
+                });
+
+                group.appendChild(g);
+            }
+
+            svg!.appendChild(group);
         }
 
-        const label = svgEl('text', { class: 'node-label', y: 22 });
-        label.textContent = node.label;
-        g.appendChild(label);
+        function renderBreadcrumb(parentId: string | null) {
+            breadcrumbEl!.innerHTML = "";
 
-        g.addEventListener('click', () => {
-          if (node.kind === 'category') {
-            location.hash = '#' + node.id;
-          } else {
-            openCardFocus(node);
-          }
-        });
+            const rootBtn = document.createElement("button");
+            rootBtn.textContent = "root";
+            rootBtn.className = parentId === null ? "is-current" : "";
+            rootBtn.addEventListener("click", () => {
+                location.hash = "";
+            });
+            breadcrumbEl!.appendChild(rootBtn);
 
-        group.appendChild(g);
-      }
+            if (parentId === null) return;
 
-      svg!.appendChild(group);
-    }
+            const path = pathTo(parentId);
+            for (const node of path) {
+                const sep = document.createElement("span");
+                sep.className = "sep";
+                sep.textContent = "\u203a";
+                breadcrumbEl!.appendChild(sep);
 
-    function renderBreadcrumb(parentId: string | null) {
-      breadcrumbEl!.innerHTML = '';
+                const btn = document.createElement("button");
+                btn.textContent = node.label.toLowerCase();
+                btn.className = node.id === parentId ? "is-current" : "";
+                btn.addEventListener("click", () => {
+                    location.hash = "#" + node.id;
+                });
+                breadcrumbEl!.appendChild(btn);
+            }
+        }
 
-      const rootBtn = document.createElement('button');
-      rootBtn.textContent = 'root';
-      rootBtn.className = parentId === null ? 'is-current' : '';
-      rootBtn.addEventListener('click', () => { location.hash = ''; });
-      breadcrumbEl!.appendChild(rootBtn);
-
-      if (parentId === null) return;
-
-      const path = pathTo(parentId);
-      for (const node of path) {
-        const sep = document.createElement('span');
-        sep.className = 'sep';
-        sep.textContent = '\u203a';
-        breadcrumbEl!.appendChild(sep);
-
-        const btn = document.createElement('button');
-        btn.textContent = node.label.toLowerCase();
-        btn.className = node.id === parentId ? 'is-current' : '';
-        btn.addEventListener('click', () => { location.hash = '#' + node.id; });
-        breadcrumbEl!.appendChild(btn);
-      }
-    }
-
-    function renderTimelineSliderHTML(node: HardwareNode): string {
-      const t = recencyOf(node.date);
-      return `
+        function renderTimelineSliderHTML(node: HardwareNode): string {
+            const t = recencyOf(node.date);
+            return `
         <div style="margin-top: var(--space-2);">
           <input
             class="card-timeline"
@@ -429,74 +543,149 @@ import BackButton from '@components/BackButton.astro';
           />
         </div>
       `;
-    }
+        }
 
-    function openCardFocus(node: HardwareNode) {
-      cardPanelEl!.style.setProperty('view-transition-name', `node-${node.id}`);
-      cardPanelEl!.innerHTML = `
+        function isLocalImagePath(path: string): boolean {
+            return !path.startsWith("http://") && !path.startsWith("https://");
+        }
+
+        // If a local-image <Image> element was relocated into the panel
+        // by a previous openCardFocus() call, send it back to the hidden
+        // pool before we touch the panel's innerHTML again to avoid discard
+        function returnLocalImageToPool() {
+            const pool = document.getElementById("local-image-pool");
+            const existing = cardPanelEl!.querySelector<HTMLElement>(
+                "[data-image-for]",
+            );
+            if (existing && pool) pool.appendChild(existing);
+        }
+
+        function openCardFocus(node: HardwareNode) {
+            returnLocalImageToPool();
+
+            cardPanelEl!.style.setProperty(
+                "view-transition-name",
+                `node-${node.id}`,
+            );
+
+            const textColumn = `
         <h2 class="font-heading" style="font-size: var(--text-xl); letter-spacing: 0.04em;">${node.label}</h2>
-        <p class="text-dim" style="font-size: var(--text-sm);">${node.description ?? ''}</p>
+        <p class="text-dim" style="font-size: var(--text-sm);">${node.description ?? ""}</p>
+        ${node.details ? `<p class="text-dim" style="font-size: var(--text-xs); opacity: 0.85;">${node.details}</p>` : ""}
         <div style="display:flex; align-items:center; gap: var(--space-2); font-size: var(--text-xs);" class="text-dim">
-          <span>${node.status === 'wished' ? '\u2606 wished' : '\u2726 owned'}</span>
-          ${node.date ? `<span>&middot; ${node.date}</span>` : ''}
+          <span>${node.status === "wished" ? "\u2606 wished" : "\u2726 owned"}</span>
+          ${node.date ? `<span>&middot; ${node.date}</span>` : ""}
         </div>
-        ${node.url ? `<a href="${node.url}" target="_blank" rel="noopener" class="text-primary" style="font-size: var(--text-sm);">more info &#8599;</a>` : ''}
-        ${node.date ? renderTimelineSliderHTML(node) : ''}
+        ${node.url ? `<a href="${node.url}" target="_blank" rel="noopener" class="text-primary" style="font-size: var(--text-sm);">more info &#8599;</a>` : ""}
+        ${node.date ? renderTimelineSliderHTML(node) : ""}
       `;
-      cardFocusEl!.hidden = false;
-      requestAnimationFrame(() => cardFocusEl!.classList.add('is-open'));
 
-      const slider = cardPanelEl!.querySelector<HTMLInputElement>('.card-timeline');
-      if (slider) {
-        slider.addEventListener('input', () => {
-          const t = Number(slider.value) / 100;
-          cardPanelEl!.style.setProperty('--card-accent', lerpColor(t));
-        });
-      }
+            // Falls back to single-column layout when no image exists.
+            if (node.image && isLocalImagePath(node.image)) {
+                // Local image (using astro Image)
+                cardPanelEl!.classList.add("has-image");
+                cardPanelEl!.innerHTML = `
+          <div class="card-focus__body">
+            <div class="card-focus__text">${textColumn}</div>
+            <div class="card-focus__image-wrap" id="card-focus-image-slot"></div>
+          </div>
+        `;
+                const pool = document.getElementById("local-image-pool");
+                const preRendered = pool?.querySelector<HTMLElement>(
+                    `[data-image-for="${node.id}"]`,
+                );
+                const slot = cardPanelEl!.querySelector(
+                    "#card-focus-image-slot",
+                );
+                if (preRendered && slot) {
+                    const img = preRendered.querySelector("img");
+                    if (img) {
+                        img.classList.add("card-focus__image");
+                        slot.appendChild(img);
+                    }
+                    // The now-emptied wrapper div stays in the pool, ready
+                    // to receive its <img> back via returnLocalImageToPool().
+                } else {
+                    console.warn(
+                        `[hardware] no pre-rendered local image found for node "${node.id}" — was it added to hardware-nodes.ts after the last build?`,
+                    );
+                }
+            } else if (node.image) {
+                // External URL (avoid astro Image)
+                cardPanelEl!.classList.add("has-image");
+                cardPanelEl!.innerHTML = `
+          <div class="card-focus__body">
+            <div class="card-focus__text">${textColumn}</div>
+            <div class="card-focus__image-wrap">
+              <img src="${node.image}" alt="${node.label}" class="card-focus__image" loading="lazy" />
+            </div>
+          </div>
+        `;
+            } else {
+                cardPanelEl!.classList.remove("has-image");
+                cardPanelEl!.innerHTML = textColumn;
+            }
+
+            cardFocusEl!.hidden = false;
+            requestAnimationFrame(() => cardFocusEl!.classList.add("is-open"));
+
+            const slider =
+                cardPanelEl!.querySelector<HTMLInputElement>(".card-timeline");
+            if (slider) {
+                slider.addEventListener("input", () => {
+                    const t = Number(slider.value) / 100;
+                    cardPanelEl!.style.setProperty(
+                        "--card-accent",
+                        lerpColor(t),
+                    );
+                });
+            }
+        }
+
+        function closeCardFocus() {
+            cardFocusEl!.classList.remove("is-open");
+            cardFocusEl!.hidden = true;
+        }
+
+        function currentParentFromHash(): string | null {
+            const hash = location.hash.replace("#", "");
+            if (!hash) return null;
+            const node = findNode(hash);
+            // Only categories can be "open"; card ids or invalid hashes fall back to root.
+            return node && node.kind === "category" ? node.id : null;
+        }
+
+        function render() {
+            closeCardFocus();
+            const parentId = currentParentFromHash();
+            renderConstellation(parentId);
+            renderBreadcrumb(parentId);
+        }
+
+        function onHashChange() {
+            render();
+        }
+        function onKeydown(e: KeyboardEvent) {
+            if (e.key === "Escape" && !cardFocusEl!.hidden) closeCardFocus();
+        }
+
+        const closeBtn = cardFocusEl.querySelector("[data-close]");
+        closeBtn?.addEventListener("click", closeCardFocus);
+        window.addEventListener("hashchange", onHashChange);
+        document.addEventListener("keydown", onKeydown);
+
+        render();
+
+        teardown = function () {
+            window.removeEventListener("hashchange", onHashChange);
+            document.removeEventListener("keydown", onKeydown);
+            closeBtn?.removeEventListener("click", closeCardFocus);
+        };
     }
 
-    function closeCardFocus() {
-      cardFocusEl!.classList.remove('is-open');
-      cardFocusEl!.hidden = true;
-    }
-
-    function currentParentFromHash(): string | null {
-      const hash = location.hash.replace('#', '');
-      if (!hash) return null;
-      const node = findNode(hash);
-      // Only categories can be "open"; card ids or invalid hashes fall back to root.
-      return node && node.kind === 'category' ? node.id : null;
-    }
-
-    function render() {
-      closeCardFocus();
-      const parentId = currentParentFromHash();
-      renderConstellation(parentId);
-      renderBreadcrumb(parentId);
-    }
-
-    function onHashChange() { render(); }
-    function onKeydown(e: KeyboardEvent) {
-      if (e.key === 'Escape' && !cardFocusEl!.hidden) closeCardFocus();
-    }
-
-    const closeBtn = cardFocusEl.querySelector('[data-close]');
-    closeBtn?.addEventListener('click', closeCardFocus);
-    window.addEventListener('hashchange', onHashChange);
-    document.addEventListener('keydown', onKeydown);
-
-    render();
-
-    teardown = function () {
-      window.removeEventListener('hashchange', onHashChange);
-      document.removeEventListener('keydown', onKeydown);
-      closeBtn?.removeEventListener('click', closeCardFocus);
-    };
-  }
-
-  initHardwarePage();
-  document.addEventListener('astro:page-load', initHardwarePage);
-  document.addEventListener('astro:before-swap', () => {
-    if (teardown) teardown();
-  });
+    initHardwarePage();
+    document.addEventListener("astro:page-load", initHardwarePage);
+    document.addEventListener("astro:before-swap", () => {
+        if (teardown) teardown();
+    });
 </script>
