@@ -270,9 +270,7 @@ function resolveLocalImage(filename: string) {
         color: var(--color-primary);
     }
 
-    /* ── Mobile (phone-width screens) ──
-     Matches the breakpoint already used on the homepage (480px) for
-     consistency across the site. */
+    /* Mobile (phone-width screens) */
     @media (max-width: 480px) {
         .breadcrumb {
             max-width: 92vw;
@@ -335,18 +333,11 @@ function resolveLocalImage(filename: string) {
         return el;
     }
 
-    /** How "present" a card's date is: 0 (old) to 1 (today). Drives accent shift. */
+    /** How recent a card's date is: 0 (old) to 1 (today). Drives accent shift. */
     function recencyOf(dateStr: string | undefined): number {
         if (!dateStr) return 0;
         const date = new Date(dateStr).getTime();
         if (Number.isNaN(date)) {
-            // An invalid date string (e.g. '0000-00-00' — month/day 00
-            // don't exist) used to propagate NaN silently through every
-            // calculation down to lerpColor(), which produced the literal
-            // string "rgb(NaN, NaN, NaN)" — browsers can't parse that as
-            // a color and fall back to black with ZERO warning anywhere.
-            // Loud failure here instead: warn once with the offending
-            // value, fall back to 0 (same as having no date at all).
             console.warn(`[hardware] invalid date string "${dateStr}" — falling back to no recency boost`);
             return 0;
         }
@@ -365,18 +356,6 @@ function resolveLocalImage(filename: string) {
         const bl = Math.round(a.b + (b.b - a.b) * t);
         return `rgb(${r}, ${g}, ${bl})`;
     }
-
-    // ── Lifecycle note ──────────────────────────────────────────
-    // Astro View Transitions swap the DOM but inline <script> blocks are
-    // NOT guaranteed to re-run their top-level code on every navigation.
-    // Capturing elements (svg, breadcrumbEl, ...) ONCE at module scope and
-    // closing over them in handlers registered once is exactly how you end
-    // up with listeners firing against detached nodes from a previous page
-    // — nothing throws, render() just paints into a void. Every element
-    // lookup AND every listener bind must happen inside initHardwarePage(),
-    // re-run from scratch on every 'astro:page-load' (which fires on the
-    // first load too, so this is the single source of truth — no separate
-    // bare call at module bottom).
 
     let teardown: (() => void) | null = null;
 
@@ -406,9 +385,6 @@ function resolveLocalImage(filename: string) {
             const cy = SVG_SIZE / 2;
             const baseR = (SVG_SIZE / 2) * 0.82 * suggestedScale;
 
-            // Convert to screen coords once, keeping the LayoutNode id attached
-            // so the connecting curve and the actual node rendering agree on
-            // exact positions.
             const screenPositions: LayoutNode[] = laidOut.map((ln) => ({
                 id: ln.id,
                 x: cx + (ln.x - 0.5) * baseR * 2,
