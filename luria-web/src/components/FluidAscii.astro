@@ -1,4 +1,6 @@
 ---
+// npm install textmode.js webgl-fluid-enhanced
+
 interface Props {
     width?: number;
     height?: number;
@@ -33,9 +35,6 @@ const { width = 960, height = 540, fontSize = 10 } = Astro.props;
         display: block;
     }
 
-    /* The only thing actually visible. Sits on top in paint order because
-     it's the positioned element; pointer-events:none lets all input fall
-     through to the real fluid canvas underneath so interaction still works. */
     .fluid-ascii canvas[data-role='ascii-output'] {
         position: absolute;
         inset: 0;
@@ -65,37 +64,65 @@ const { width = 960, height = 540, fontSize = 10 } = Astro.props;
         };
     }
 
-    function init(root: HTMLElement): void {
+    function waitForCanvas(container: HTMLElement): Promise<HTMLCanvasElement> {
+        return new Promise((resolve) => {
+            const check = () => {
+                const canvas = container.querySelector<HTMLCanvasElement>('canvas');
+                if (canvas && canvas.width > 0 && canvas.height > 0) {
+                    resolve(canvas);
+                } else {
+                    requestAnimationFrame(check);
+                }
+            };
+            check();
+        });
+    }
+
+    const teardowns = new WeakMap<HTMLElement, () => void>();
+
+    async function init(root: HTMLElement): Promise<void> {
+        teardowns.get(root)?.();
+        teardowns.delete(root);
+
+        let cancelled = false;
+        teardowns.set(root, () => {
+            cancelled = true;
+        });
+
         const fluidContainer = required(root.querySelector<HTMLDivElement>('[data-role="fluid-container"]'), '[data-role="fluid-container"]');
         const outputCanvas = required(root.querySelector<HTMLCanvasElement>('[data-role="ascii-output"]'), '[data-role="ascii-output"]');
-
         const fontSize = Number(root.dataset.fontSize) || 10;
-        const { w, h } = pixelSize(root);
 
         const fluid = new WebGLFluidEnhanced(fluidContainer);
-
         fluid.setConfig({
-            densityDissipation: 1.5,
-            velocityDissipation: 0.4,
-            pressure: 0.8,
-            curl: 25,
-            splatRadius: 0.3,
+            densityDissipation: 3.5,
+            velocityDissipation: 0.8,
+            pressure: 1.0,
+            curl: 35,
+            splatRadius: 0.2,
             splatForce: 6000,
-            shading: true,
+            shading: false,
             colorful: true,
             transparent: false,
         });
-
         fluid.start();
 
-        const fluidCanvas = required(fluidContainer.querySelector<HTMLCanvasElement>('canvas'), 'canvas (created by WebGLFluidEnhanced)');
+        const fluidCanvas = await waitForCanvas(fluidContainer);
+
+        if (cancelled) {
+            fluid.stop();
+            return;
+        }
+        let a: BigInt = 2n^64n-1n; // -1
+
+        const { w, h } = pixelSize(root);
 
         const t = textmode.create({
             canvas: outputCanvas,
             width: w,
             height: h,
             fontSize,
-            frameRate: 60,
+            frameRate: 30,
         });
 
         type TextmodeTextureLike = ReturnType<typeof t.createTexture>;
@@ -103,7 +130,7 @@ const { width = 960, height = 540, fontSize = 10 } = Astro.props;
 
         t.setup(() => {
             fluidTex = t.createTexture(fluidCanvas);
-            fluidTex.characters(' .:-=+*#%@').charColorMode('sampled').cellColorMode('fixed').cellColor(0, 0, 0);
+            fluidTex.characters('  .:-=+*#%@').charColorMode('sampled').cellColorMode('fixed').cellColor(0, 0, 0);
         });
 
         t.draw(() => {
@@ -113,12 +140,34 @@ const { width = 960, height = 540, fontSize = 10 } = Astro.props;
             }
         });
 
-        const ro = new ResizeObserver((): void => {
+        const ro = new ResizeObserver(() => {
             const size = pixelSize(root);
             t.resizeCanvas(size.w, size.h);
         });
         ro.observe(root);
+
+        teardowns.set(root, () => {
+            cancelled = true;
+            ro.disconnect();
+            t.noLoop();
+            fluid.stop();
+        });
     }
 
-    document.querySelectorAll<HTMLElement>('.fluid-ascii').forEach((root) => init(root));
+    function initAll(): void {
+        document.querySelectorAll<HTMLElement>('.fluid-ascii').forEach((root) => {
+            void init(root);
+        });
+    }
+
+    function teardownAll(): void {
+        document.querySelectorAll<HTMLElement>('.fluid-ascii').forEach((root) => {
+            teardowns.get(root)?.();
+            teardowns.delete(root);
+        });
+    }
+
+    initAll();
+    document.addEventListener('astro:page-load', initAll);
+    document.addEventListener('astro:before-swap', teardownAll);
 </script>
