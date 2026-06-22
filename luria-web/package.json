@@ -14,7 +14,9 @@
     "gen:hardware-md": "npx tsx scripts/generate-hardware-md.ts"
   },
   "dependencies": {
-    "astro": "^6.4.6"
+    "astro": "^6.4.6",
+    "textmode.js": "^0.16.0",
+    "webgl-fluid-enhanced": "^0.8.0"
   },
   "devDependencies": {
     "@types/node": "^26.0.0",
