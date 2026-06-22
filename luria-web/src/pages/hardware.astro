@@ -49,7 +49,7 @@ function resolveLocalImage(filename: string) {
         <StarfieldCanvas spacing={44} />
         <BackButton href="/" label="home" />
 
-        <!-- Breadcrumb / constellation switcher, bottom of viewport -->
+        <!-- Breadcrumb -->
         <nav id="breadcrumb" class="breadcrumb" aria-label="Constellation path">
         </nav>
 
@@ -80,13 +80,6 @@ function resolveLocalImage(filename: string) {
             rel="noopener">readable list &#8599;</a
         >
 
-        <!-- Hidden pool of build-time-optimized local images, one per
-             card that has one. Never shown directly — the runtime script
-             relocates (not clones) the actual <img> Astro generates here
-             into the card-focus panel when that card is opened. This is
-             the only way to use <Image> at all for runtime-selected
-             content, since <Image> only exists as build-time Astro
-             syntax and has no client-side JS equivalent to call. -->
         <div id="local-image-pool" hidden aria-hidden="true">
             {await Promise.all(cardsWithLocalImages.map(async (node) => (
                 <div data-image-for={node.id}>
@@ -110,9 +103,6 @@ function resolveLocalImage(filename: string) {
     .constellation-root {
         position: relative;
         z-index: var(--z-content);
-        /* No fixed max-width/max-height — scales proportionally with viewport
-       on large/ultra-wide screens instead of going inert past an arbitrary
-       cap. A themed container wrapping this can constrain it further later. */
         width: min(92vw, 92dvh);
         height: min(92vw, 92dvh);
     }
@@ -138,7 +128,7 @@ function resolveLocalImage(filename: string) {
         letter-spacing: 0.08em;
     }
 
-    .breadcrumb button {
+    :global(.breadcrumb button) {
         background: var(--color-panel);
         border: 1px solid var(--color-border);
         border-radius: 4px;
@@ -153,15 +143,15 @@ function resolveLocalImage(filename: string) {
             border-color var(--dur-base) var(--ease-out);
     }
 
-    .breadcrumb button:hover,
-    .breadcrumb button.is-current {
+    :global(.breadcrumb button:hover,
+    .breadcrumb button.is-current) {
         color: var(--color-text);
         border-color: var(--color-border-hover);
     }
 
-    .breadcrumb .sep {
+    :global(.breadcrumb .sep) {
         color: var(--color-text-dim);
-        opacity: 0.4;
+        opacity: 0.8;
     }
 
     /* Constellation node styling (classes applied via JS to SVG els) */
@@ -169,22 +159,10 @@ function resolveLocalImage(filename: string) {
         cursor: pointer;
     }
 
-    :global(.node-hit-area) {
-        /* Invisible but IS the actual click/hover target — pointer-events
-       must stay enabled (default) even though fill is transparent. */
-        transition: fill var(--dur-base) var(--ease-out);
-    }
-
-    :global(.node:hover .node-hit-area) {
-        fill: var(--color-glow);
-    }
-
     :global(.node-star) {
         transition:
             r var(--dur-base) var(--ease-out),
             opacity var(--dur-base) var(--ease-out);
-        /* The star itself never needs to catch events — the hit-area rect
-       (rendered behind it) owns all pointer interaction for this node. */
         pointer-events: none;
     }
 
@@ -206,21 +184,11 @@ function resolveLocalImage(filename: string) {
     }
 
     :global(.constellation-edge) {
-        /* NOTE: --color-border is rgba(...,0.12) by design (meant for subtle
-       hairline borders). Stacking that with an element-level opacity here
-       compounds into ~4% effective alpha — invisible in practice. This
-       curve is a primary navigational element, not a subtle hint, so it
-       gets its own brighter, dedicated value instead of reusing --color-border. */
         stroke: rgba(213, 184, 255, 0.45);
         stroke-width: 1.5;
         fill: none;
     }
 
-    /* Card focus overlay
-     NOTE: don't rely on [hidden] alone — it has the same specificity as
-     a class selector, and source order in Astro's injected <style> can
-     make .card-focus win the tie, leaving the panel visible-but-empty.
-     [hidden] gets display:none !important here so it always wins. */
     .card-focus {
         position: fixed;
         inset: 0;
@@ -250,24 +218,11 @@ function resolveLocalImage(filename: string) {
         gap: var(--space-4);
     }
 
-    /* Wider panel when a card includes an image — 420px is too narrow for
-     a comfortable text+image side-by-side layout.
-     NOTE: .has-image is toggled via classList on #card-focus-panel, which
-     exists in this component's static template, so this selector can
-     stay scoped — unlike everything below it. */
     .card-focus__panel.has-image {
         width: min(90vw, 620px);
     }
 
-    /* Everything below targets elements created by cardPanelEl.innerHTML
-       in the script, NOT elements present in this component's static
-       template. Astro's scoped CSS only attaches its scoping attribute
-       to elements it compiles from the template at build time — anything
-       injected at runtime via innerHTML never receives that attribute,
-       so a scoped selector here silently matches nothing. This is the
-       exact same reason the SVG node styles further up use :global() —
-       just missed here on the first two passes at this section, which
-       is why none of this sizing ever visibly applied. */
+    /* Everything below targets elements created by cardPanelEl.innerHTML in script */
     :global(.card-focus__body) {
         display: flex;
         gap: var(--space-6);
@@ -286,15 +241,6 @@ function resolveLocalImage(filename: string) {
         flex: 0 0 auto;
         width: 38%;
         max-width: 200px;
-        /* No explicit height here — align-items: stretch on the parent
-           (.card-focus__body) already makes this match the text column's
-           rendered height natively. Setting height: 100% here actively
-           BREAKS that: percentage heights only resolve against a parent
-           with an explicit height, and .card-focus__body's height is
-           auto (driven by its content) — so height: 100% fails to
-           resolve and the browser falls back to letting this element's
-           own content (the image, at its full intrinsic size) win
-           completely. */
         min-height: 120px;
     }
 
@@ -302,8 +248,6 @@ function resolveLocalImage(filename: string) {
         display: block;
         width: 100%;
         height: 100%;
-        /* Crops to fill the box rather than distorting the image's own
-           aspect ratio or letting it dictate the box's height. */
         object-fit: cover;
         border-radius: 8px;
         border: 1px solid var(--color-border);
@@ -474,15 +418,10 @@ function resolveLocalImage(filename: string) {
 
             const group = svgEl("g", { id: "layout-group" });
 
-            // Connect all nodes with straight segments in perimeter-following
-            // order — angular-sort around centroid guarantees both no
-            // self-crossings AND that the line traces the shape's outline
-            // (e.g. goes the long way around an octagon) rather than cutting
-            // across the middle. Each segment stops short of both its nodes
-            // (the `gap` param) so lines don't visually touch the markers.
+            // Connect all nodes with decorative lines
             if (screenPositions.length >= 2) {
                 const ordered = orderNodesForPath(screenPositions);
-                const pathData = straightPathThrough(ordered, 14);
+                const pathData = straightPathThrough(ordered, 32);
                 const path = svgEl("path", {
                     d: pathData,
                     class: "constellation-edge",
@@ -491,13 +430,9 @@ function resolveLocalImage(filename: string) {
                 group.appendChild(path);
             }
 
-            // Measured once per render (not per-node): converts the hit-area's
-            // fixed SVG user-space size into a viewport-aware scale, so the
-            // effective on-screen tap target stays comfortable even when the
-            // SVG's rendered container is small (e.g. a phone-width viewport).
             const containerPx = svg!.getBoundingClientRect().width || SVG_SIZE;
             const unitsPerScreenPx = SVG_SIZE / containerPx;
-            const MIN_HIT_SCREEN_PX = 44; // standard comfortable touch target
+            const MIN_HIT_SCREEN_PX = 44;
             const hitScale = Math.max(
                 1,
                 (MIN_HIT_SCREEN_PX * unitsPerScreenPx) / 56,
@@ -517,17 +452,6 @@ function resolveLocalImage(filename: string) {
                 g.style.setProperty("view-transition-name", `node-${node.id}`);
 
                 // Real rectangular hit area, independent of the visual star shape.
-                // Without this, a hollow ring (fill: none) only registers clicks on
-                // its stroke — the interior and everything around the label is dead
-                // space. This rect is invisible but covers star + label generously.
-                //
-                // Sizing note: these are SVG user-space units (viewBox is 1000x1000),
-                // not screen pixels. As the SVG's rendered container shrinks (e.g.
-                // on a phone-width viewport), a fixed unit size shrinks right along
-                // with it — a 64-unit hit area can end up as small as ~22 actual
-                // screen px on a narrow phone, too small to comfortably tap. So the
-                // unit size is scaled inversely with the container's rendered size,
-                // keeping the EFFECTIVE on-screen tap target roughly constant.
                 const HIT_W = 64 * hitScale;
                 const HIT_H = 56 * hitScale;
                 const hitArea = svgEl("rect", {
@@ -541,9 +465,8 @@ function resolveLocalImage(filename: string) {
                 g.appendChild(hitArea);
 
                 if (node.kind === "category") {
-                    // Hollow ringed star = a door into a sub-constellation
                     // NOTE: var() does not resolve inside plain SVG attributes set via
-                    // setAttribute — only inside actual CSS (style=""/stylesheets).
+                    // setAttribute, only inside actual CSS (style=""/stylesheets).
                     // So color is applied via .style, not the attrs object.
                     const star = svgEl("circle", {
                         class: "node-star",
@@ -558,9 +481,8 @@ function resolveLocalImage(filename: string) {
                     g.appendChild(star);
                     g.appendChild(inner);
                 } else {
-                    // Filled star = content. Color shifts toward primary as date approaches now.
                     const t = recencyOf(node.date);
-                    const color = lerpColor(t); // already a literal rgb(...) string — fine as an attr
+                    const color = lerpColor(t);
                     const isWished = node.status === "wished";
                     const star = svgEl("circle", {
                         class: "node-star",
@@ -653,10 +575,7 @@ function resolveLocalImage(filename: string) {
 
         // If a local-image <Image> element was relocated into the panel
         // by a previous openCardFocus() call, send it back to the hidden
-        // pool before we touch the panel's innerHTML again — otherwise
-        // that relocated element gets discarded along with the rest of
-        // the panel's old content, and reopening that same card later
-        // would find nothing left in the pool for it.
+        // pool before we touch the panel's innerHTML again to avoid discard
         function returnLocalImageToPool() {
             const pool = document.getElementById("local-image-pool");
             const existing = cardPanelEl!.querySelector<HTMLElement>(
@@ -685,16 +604,9 @@ function resolveLocalImage(filename: string) {
         ${node.date ? renderTimelineSliderHTML(node) : ""}
       `;
 
-            // Image is anchored to the right of the text column — most cards
-            // have a lot of dead space there otherwise. Falls back to the
-            // original single-column layout when no image exists.
+            // Falls back to single-column layout when no image exists.
             if (node.image && isLocalImagePath(node.image)) {
-                // Local image: the actual <img> already exists (built by
-                // Astro's <Image> at build time, sitting hidden in
-                // #local-image-pool) — find it by data-image-for and
-                // MOVE it into the panel. We never build new image
-                // markup here; <Image> has no runtime/client-side
-                // equivalent to call.
+                // Local image (using astro Image)
                 cardPanelEl!.classList.add("has-image");
                 cardPanelEl!.innerHTML = `
           <div class="card-focus__body">
@@ -723,9 +635,7 @@ function resolveLocalImage(filename: string) {
                     );
                 }
             } else if (node.image) {
-                // External URL: no build-time import possible/wanted for
-                // these (see the field doc in hardware-nodes.ts) — same
-                // plain <img> string-building as before.
+                // External URL (avoid astro Image)
                 cardPanelEl!.classList.add("has-image");
                 cardPanelEl!.innerHTML = `
           <div class="card-focus__body">
