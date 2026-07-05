@@ -19,7 +19,11 @@ const { spacing = 36, dotRadius = 1.8, fishRadius = 220, fishStrength = 0.22 } =
         if (teardown) teardown();
 
         const canvas = document.getElementById('starfield');
-        if (!canvas) return; // page doesn't have a starfield
+        if (!canvas) return;
+
+        debugEl = document.createElement('div');
+        debugEl.style.cssText = 'position:fixed;top:0;left:0;z-index:9999;background:#000;color:#0f0;font:12px monospace;padding:4px;pointer-events:none;';
+        document.body.appendChild(debugEl);
 
         const ctx = canvas.getContext('2d');
         const FISH_R2 = fishRadius * fishRadius;
@@ -32,6 +36,8 @@ const { spacing = 36, dotRadius = 1.8, fishRadius = 220, fishStrength = 0.22 } =
         let destroyed = false;
         const FRAME_MS = 1000 / 30;
 
+        const isTouch = window.matchMedia('(pointer: coarse)').matches;
+
         let primaryRgb = getComputedStyle(document.documentElement).getPropertyValue('--color-primary-rgb').trim() || '213, 184, 255';
 
         function getDotColor(alpha) {
@@ -41,6 +47,33 @@ const { spacing = 36, dotRadius = 1.8, fishRadius = 220, fishStrength = 0.22 } =
         function onMouseMove(e) {
             mx = e.clientX;
             my = e.clientY;
+        }
+
+        function onOrientation(e) {
+            if (debugEl) debugEl.textContent = `a:${e.alpha} b:${e.beta} g:${e.gamma}`;
+            const gamma = e.gamma ?? 0; // left/right tilt, ~[-90,90]
+            const beta = e.beta ?? 0; // front/back tilt, ~[-180,180]
+            const nx = Math.max(-1, Math.min(1, gamma / 45));
+            const ny = Math.max(-1, Math.min(1, (beta - 45) / 45));
+            mx = canvas.width / 2 + nx * (canvas.width / 2);
+            my = canvas.height / 2 + ny * (canvas.height / 2);
+        }
+
+        function requestGyro() {
+            if (debugEl) debugEl.textContent = 'requestGyro fired';
+            if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+                DeviceOrientationEvent.requestPermission()
+                    .then((state) => {
+                        if (debugEl) debugEl.textContent = 'permission: ' + state;
+                        if (state === 'granted') attachOrientationListeners();
+                    })
+                    .catch((err) => {
+                        if (debugEl) debugEl.textContent = 'error: ' + err;
+                    });
+            } else {
+                if (debugEl) debugEl.textContent = 'no permission API, attaching directly ' + window.isSecureContext;
+                attachOrientationListeners();
+            }
         }
 
         function buildGrid(w, h) {
@@ -54,6 +87,10 @@ const { spacing = 36, dotRadius = 1.8, fishRadius = 220, fishStrength = 0.22 } =
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
             buildGrid(canvas.width, canvas.height);
+            if (isTouch) {
+                mx = canvas.width / 2;
+                my = canvas.height / 2;
+            }
         }
 
         function draw(ts) {
@@ -94,8 +131,14 @@ const { spacing = 36, dotRadius = 1.8, fishRadius = 220, fishStrength = 0.22 } =
         }
 
         resize();
-        window.addEventListener('mousemove', onMouseMove);
         window.addEventListener('resize', resize);
+
+        if (isTouch) {
+            window.addEventListener('touchstart', requestGyro, { once: true });
+        } else {
+            window.addEventListener('mousemove', onMouseMove);
+        }
+
         rafId = requestAnimationFrame(draw);
 
         teardown = function () {
@@ -103,6 +146,8 @@ const { spacing = 36, dotRadius = 1.8, fishRadius = 220, fishStrength = 0.22 } =
             if (rafId !== null) cancelAnimationFrame(rafId);
             window.removeEventListener('mousemove', onMouseMove);
             window.removeEventListener('resize', resize);
+            window.removeEventListener('deviceorientation', onOrientation);
+            window.removeEventListener('touchstart', requestGyro);
         };
     }
 
